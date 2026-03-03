@@ -1,0 +1,25 @@
+# Entorno virtual
+venv/
+.env
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Logs
+*.log
+
+# Alembic cache / misc
+alembic/__pycache__/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Static uploads (opcional: si quieres versionar covers, elimina estas 2 líneas)
+static/covers/*
+!static/covers/.keep
