@@ -16,6 +16,15 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
 
+# Importar modelos para que SQLAlchemy los registre (útil para Alembic)
+# [NUEVO]
+from models.user import User  # noqa: E402,F401
+from models.auth_token import AuthToken  # noqa: E402,F401
+from models.email_token import EmailToken  # noqa: E402,F401
+from models.categoria import Categoria  # noqa: E402,F401
+from models.libro import Libro  # noqa: E402,F401
+from models.prestamo import Prestamo  # noqa: E402,F401
+
 def get_db():
     db = SessionLocal()
     try:
