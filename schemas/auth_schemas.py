@@ -17,10 +17,23 @@ class TokenResponse(BaseModel):
     token_type: str = "bearer"
 
 
+class RefreshResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+
+
 class MessageResponse(BaseModel):
     message: str
 
 
-class RefreshResponse(BaseModel):
-    access_token: str
-    token_type: str = "bearer"
+class VerifyEmailRequest(BaseModel):
+    token: str = Field(..., min_length=10)
+
+
+class RequestResetPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ResetPasswordRequest(BaseModel):
+    token: str = Field(..., min_length=10)
+    new_password: str = Field(..., min_length=8, max_length=128)

@@ -7,7 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from core.logging_conf import setup_logging
 from database import get_db
 from core.settings import settings
-from core.security import create_access_token
+
+from api.auth import router as auth_router
 
 setup_logging()
 logger = logging.getLogger("biblioteca")
@@ -17,7 +18,6 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# CORS (para cookies HttpOnly)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[settings.FRONTEND_URL],
@@ -25,6 +25,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(auth_router)
 
 @app.get("/")
 def root():
@@ -35,12 +37,3 @@ def root():
 def db_ping(db: Session = Depends(get_db)):
     db.execute(text("SELECT 1"))
     return {"db": "ok"}
-
-@app.get("/token/test")
-def token_test():
-    """
-    Endpoint temporal para verificar que JWT funciona.
-    En fases siguientes se reemplaza por login real.
-    """
-    token = create_access_token(subject="1")
-    return {"access_token": token, "token_type": "bearer"}
