@@ -10,6 +10,10 @@ import VerifyEmail from "./auth/VerifyEmail.jsx";
 import ForgotPassword from "./auth/ForgotPassword.jsx";
 import ResetPassword from "./auth/ResetPassword.jsx";
 
+import RutaProtegida from "./layout/RutaProtegida.jsx";
+import MisPrestamos from "./prestamos/MisPrestamos.jsx";
+import AdminDashboard from "./admin/AdminDashboard.jsx";
+
 function NotFound() {
   return (
     <div className="p-4 rounded-3 border bg-body-tertiary">
@@ -31,11 +35,22 @@ export default function App() {
             Biblioteca Web
           </Link>
 
-          <div className="ms-auto d-flex align-items-center gap-2">
+          <div className="ms-auto d-flex align-items-center gap-2 flex-wrap">
+            <Link to="/prestamos" className="btn btn-sm btn-outline-light">
+              <i className="bi bi-journal-check me-1"></i>
+              Mis Préstamos
+            </Link>
+
+            <Link to="/admin" className="btn btn-sm btn-outline-warning">
+              <i className="bi bi-shield-lock me-1"></i>
+              Admin
+            </Link>
+
             <Link to="/login" className="btn btn-sm btn-outline-light">
               <i className="bi bi-box-arrow-in-right me-1"></i>
               Login
             </Link>
+
             <Link to="/register" className="btn btn-sm btn-light">
               <i className="bi bi-person-plus me-1"></i>
               Register
@@ -54,6 +69,12 @@ export default function App() {
           <Route path="/verify-email" element={<VerifyEmail />} />
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+
+          {/* RUTAS PROTEGIDAS */}
+          <Route element={<RutaProtegida />}>
+            <Route path="/prestamos" element={<MisPrestamos />} />
+            <Route path="/admin" element={<AdminDashboard />} />
+          </Route>
 
           <Route path="*" element={<NotFound />} />
         </Routes>
