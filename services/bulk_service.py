@@ -5,6 +5,19 @@ from sqlalchemy.orm import Session
 from models.libro import Libro, LibroEstado
 from models.categoria import Categoria
 
+def _normalize_isbn(value: str) -> str:
+    """
+    Corrige ISBN cuando Excel lo convierte a notación científica.
+    """
+    value = (value or "").strip()
+
+    if "E+" in value.upper():
+        try:
+            value = str(int(float(value)))
+        except Exception:
+            pass
+
+    return value
 
 def _norm_key(k: str) -> str:
     return (k or "").replace("\ufeff", "").strip().lower()
@@ -54,7 +67,7 @@ def bulk_import_libros(db: Session, csv_content: str) -> dict:
         # Aceptar headers alternativos comunes
         titulo = _get(row, "titulo", "título", "title")
         autor = _get(row, "autor", "author")
-        isbn = _get(row, "isbn")
+        isbn = _normalize_isbn(_get(row, "isbn"))
 
         resumen = _get(row, "resumen", "summary", "descripcion", "descripción")
         categoria_nombre = _get(row, "categoria_nombre", "categoria", "category", "categoría")
