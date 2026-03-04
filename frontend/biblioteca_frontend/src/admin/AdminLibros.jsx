@@ -1,11 +1,383 @@
+// [MODIFICADO]
+import { useEffect, useMemo, useState } from "react";
+import http from "../api/http.js";
+import { getCategorias } from "../api/categorias.js";
+import { getLibros } from "../api/libros.js";
+import Spinner from "../components/Spinner.jsx";
+import Alerta from "../components/Alerta.jsx";
+
+function parseFastApiError(err) {
+  const data = err?.response?.data;
+
+  if (Array.isArray(data?.detail)) {
+    return data.detail
+      .map((e) => {
+        const loc = Array.isArray(e.loc) ? e.loc.join(".") : "body";
+        return `${loc}: ${e.msg}`;
+      })
+      .join(" | ");
+  }
+
+  return data?.detail || data?.message || "Error inesperado";
+}
+
+function normalizarListado(data) {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.items)) return data.items;
+  return [];
+}
+
 export default function AdminLibros() {
+  const [items, setItems] = useState([]);
+  const [categorias, setCategorias] = useState([]);
+
+  const [titulo, setTitulo] = useState("");
+  const [autor, setAutor] = useState("");
+  const [isbn, setIsbn] = useState("");
+  const [resumen, setResumen] = useState("");
+  const [coverUrl, setCoverUrl] = useState("");
+  const [categoriaId, setCategoriaId] = useState("");
+  const [estado, setEstado] = useState("DISPONIBLE");
+
+  const [editandoId, setEditandoId] = useState(null);
+
+  const [cargando, setCargando] = useState(true);
+  const [error, setError] = useState("");
+  const [ok, setOk] = useState("");
+
+  const cargar = async () => {
+    setError("");
+    setOk("");
+    setCargando(true);
+    try {
+      const [libros, cats] = await Promise.all([getLibros(), getCategorias()]);
+      setItems(normalizarListado(libros));
+      setCategorias(normalizarListado(cats));
+    } catch (err) {
+      setError(parseFastApiError(err));
+    } finally {
+      setCargando(false);
+    }
+  };
+
+  useEffect(() => {
+    cargar();
+  }, []);
+
+  const categoriaNombrePorId = useMemo(() => {
+    const map = new Map();
+    categorias.forEach((c) => map.set(String(c.id), c.nombre));
+    return map;
+  }, [categorias]);
+
+  const limpiar = () => {
+    setTitulo("");
+    setAutor("");
+    setIsbn("");
+    setResumen("");
+    setCoverUrl("");
+    setCategoriaId("");
+    setEstado("DISPONIBLE");
+    setEditandoId(null);
+  };
+
+  const validar = () => {
+    if (!titulo.trim()) return "El título es obligatorio.";
+    if (!autor.trim()) return "El autor es obligatorio.";
+    if (!categoriaId) return "Selecciona una categoría.";
+    return "";
+  };
+
+  const construirPayload = () => {
+    // Ajustado al esquema real de tu tabla:
+    // titulo, autor, isbn, resumen, cover_url, categoria_id, estado
+    const payload = {
+      titulo: titulo.trim(),
+      autor: autor.trim(),
+      categoria_id: Number(categoriaId),
+      estado: estado || "DISPONIBLE",
+    };
+
+    // Opcionales
+    payload.isbn = isbn.trim() ? isbn.trim() : null;
+    payload.resumen = resumen.trim() ? resumen.trim() : null;
+    payload.cover_url = coverUrl.trim() ? coverUrl.trim() : null;
+
+    return payload;
+  };
+
+  const crear = async (e) => {
+    e.preventDefault();
+    setError("");
+    setOk("");
+
+    const v = validar();
+    if (v) {
+      setError(v);
+      return;
+    }
+
+    try {
+      // Swagger: POST /libros/ (con slash final)
+      await http.post("/libros/", construirPayload());
+      setOk("Libro creado.");
+      limpiar();
+      await cargar();
+    } catch (err) {
+      setError(parseFastApiError(err));
+    }
+  };
+
+  const actualizar = async (e) => {
+    e.preventDefault();
+    setError("");
+    setOk("");
+
+    const v = validar();
+    if (v) {
+      setError(v);
+      return;
+    }
+
+    try {
+      await http.put(`/libros/${editandoId}`, construirPayload());
+      setOk("Libro actualizado.");
+      limpiar();
+      await cargar();
+    } catch (err) {
+      setError(parseFastApiError(err));
+    }
+  };
+
+  const eliminar = async (id) => {
+    setError("");
+    setOk("");
+    if (!window.confirm("¿Eliminar libro?")) return;
+
+    try {
+      await http.delete(`/libros/${id}`);
+      setOk("Libro eliminado.");
+      await cargar();
+    } catch (err) {
+      setError(parseFastApiError(err));
+    }
+  };
+
+  const editar = (lib) => {
+    setEditandoId(lib.id);
+
+    setTitulo(lib.titulo ?? "");
+    setAutor(lib.autor ?? "");
+    setIsbn(lib.isbn ?? "");
+    setResumen(lib.resumen ?? "");
+    setCoverUrl(lib.cover_url ?? "");
+    setCategoriaId(
+      lib.categoria_id !== undefined && lib.categoria_id !== null
+        ? String(lib.categoria_id)
+        : ""
+    );
+    setEstado(lib.estado ?? "DISPONIBLE");
+  };
+
   return (
-    <div className="p-4 border rounded-3 bg-body-tertiary">
-      <h1 className="h4 mb-2">
-        <i className="bi bi-book-half me-2"></i>
-        Admin Libros
-      </h1>
-      <p className="mb-0 text-secondary">Placeholder (CRUD en Fase 17).</p>
+    <div className="row g-4">
+      <div className="col-12 col-lg-4">
+        <div className="p-4 border rounded-3 bg-body-tertiary">
+          <h1 className="h5 mb-3">
+            <i className="bi bi-book-half me-2"></i>
+            {editandoId ? "Editar libro" : "Nuevo libro"}
+          </h1>
+
+          <Alerta mensaje={error} />
+          <Alerta type="success" mensaje={ok} />
+
+          <form onSubmit={editandoId ? actualizar : crear}>
+            <div className="mb-3">
+              <label className="form-label">Título</label>
+              <input
+                className="form-control"
+                value={titulo}
+                onChange={(e) => setTitulo(e.target.value)}
+                placeholder="Ej: Clean Code"
+              />
+            </div>
+
+            <div className="mb-3">
+              <label className="form-label">Autor</label>
+              <input
+                className="form-control"
+                value={autor}
+                onChange={(e) => setAutor(e.target.value)}
+                placeholder="Ej: Robert C. Martin"
+              />
+            </div>
+
+            <div className="mb-3">
+              <label className="form-label">Categoría</label>
+              <select
+                className="form-select"
+                value={categoriaId}
+                onChange={(e) => setCategoriaId(e.target.value)}
+              >
+                <option value="">Seleccione</option>
+                {categorias.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="mb-3">
+              <label className="form-label">ISBN (opcional)</label>
+              <input
+                className="form-control"
+                value={isbn}
+                onChange={(e) => setIsbn(e.target.value)}
+                placeholder="Ej: 9780132350884"
+              />
+            </div>
+
+            <div className="mb-3">
+              <label className="form-label">Resumen (opcional)</label>
+              <textarea
+                className="form-control"
+                rows={3}
+                value={resumen}
+                onChange={(e) => setResumen(e.target.value)}
+                placeholder="Ej: Buenas prácticas de código limpio"
+              />
+            </div>
+
+            <div className="mb-3">
+              <label className="form-label">Cover URL (opcional)</label>
+              <input
+                className="form-control"
+                value={coverUrl}
+                onChange={(e) => setCoverUrl(e.target.value)}
+                placeholder="https://..."
+              />
+            </div>
+
+            <div className="mb-3">
+              <label className="form-label">Estado</label>
+              <select
+                className="form-select"
+                value={estado}
+                onChange={(e) => setEstado(e.target.value)}
+              >
+                <option value="DISPONIBLE">DISPONIBLE</option>
+                <option value="NO_DISPONIBLE">NO_DISPONIBLE</option>
+                <option value="PRESTADO">PRESTADO</option>
+              </select>
+              <div className="form-text text-secondary">
+                Si tu backend solo acepta ciertos valores, usa los mismos del Swagger.
+              </div>
+            </div>
+
+            <button className="btn btn-light w-100" type="submit">
+              {editandoId ? "Actualizar" : "Crear"}
+            </button>
+
+            {editandoId && (
+              <button
+                type="button"
+                className="btn btn-outline-light w-100 mt-2"
+                onClick={limpiar}
+              >
+                Cancelar
+              </button>
+            )}
+          </form>
+
+          <div className="mt-3 small text-secondary">
+            Create: <code>POST /libros/</code>
+          </div>
+        </div>
+      </div>
+
+      <div className="col-12 col-lg-8">
+        <div className="p-4 border rounded-3 bg-body-tertiary">
+          <div className="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+            <h2 className="h5 mb-0">
+              <i className="bi bi-list-ul me-2"></i>
+              Lista de libros
+            </h2>
+
+            <button
+              className="btn btn-sm btn-outline-light"
+              onClick={cargar}
+              disabled={cargando}
+            >
+              <i className="bi bi-arrow-clockwise me-1"></i>
+              Recargar
+            </button>
+          </div>
+
+          {cargando ? (
+            <Spinner texto="Cargando libros..." />
+          ) : items.length === 0 ? (
+            <div className="text-secondary">No hay libros.</div>
+          ) : (
+            <div className="table-responsive">
+              <table className="table table-dark table-hover align-middle mb-0">
+                <thead>
+                  <tr>
+                    <th style={{ width: 70 }}>ID</th>
+                    <th>Título</th>
+                    <th>Autor</th>
+                    <th style={{ width: 160 }}>Categoría</th>
+                    <th style={{ width: 140 }}>Estado</th>
+                    <th style={{ width: 130 }}></th>
+                  </tr>
+                </thead>
+
+                <tbody>
+                  {items.map((lib) => {
+                    const cid =
+                      lib.categoria_id !== undefined && lib.categoria_id !== null
+                        ? String(lib.categoria_id)
+                        : "";
+                    const categoriaNombre = cid
+                      ? categoriaNombrePorId.get(cid) || "-"
+                      : "-";
+
+                    return (
+                      <tr key={lib.id}>
+                        <td className="text-secondary">{lib.id}</td>
+                        <td className="fw-semibold">{lib.titulo ?? "—"}</td>
+                        <td className="text-secondary">{lib.autor ?? "—"}</td>
+                        <td className="text-secondary">{categoriaNombre}</td>
+                        <td>
+                          <span className="badge text-bg-secondary">
+                            {lib.estado ?? "—"}
+                          </span>
+                        </td>
+                        <td className="text-end">
+                          <button
+                            className="btn btn-sm btn-outline-light me-2"
+                            onClick={() => editar(lib)}
+                            title="Editar"
+                          >
+                            <i className="bi bi-pencil"></i>
+                          </button>
+                          <button
+                            className="btn btn-sm btn-outline-danger"
+                            onClick={() => eliminar(lib.id)}
+                            title="Eliminar"
+                          >
+                            <i className="bi bi-trash"></i>
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
