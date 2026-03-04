@@ -1,3 +1,4 @@
+// [MODIFICADO]
 import { useEffect, useState } from "react";
 import { crearCategoria, getCategorias } from "../api/categorias.js";
 import Alerta from "../components/Alerta.jsx";
@@ -29,8 +30,16 @@ export default function Categorias() {
   const [guardando, setGuardando] = useState(false);
 
   const [nombre, setNombre] = useState("");
+  const [descripcion, setDescripcion] = useState("");
+
   const [error, setError] = useState("");
   const [ok, setOk] = useState("");
+
+  const normalizarListado = (data) => {
+    if (Array.isArray(data)) return data;
+    if (Array.isArray(data?.items)) return data.items;
+    return [];
+  };
 
   const cargar = async () => {
     setError("");
@@ -38,9 +47,7 @@ export default function Categorias() {
     setCargando(true);
     try {
       const data = await getCategorias();
-      // Puede venir como array directo o como {items: []} según backend
-      const list = Array.isArray(data) ? data : data?.items || [];
-      setItems(list);
+      setItems(normalizarListado(data));
     } catch (err) {
       setError(parseFastApiError(err));
     } finally {
@@ -64,9 +71,15 @@ export default function Categorias() {
 
     setGuardando(true);
     try {
-      await crearCategoria({ nombre });
+      await crearCategoria({
+        nombre: nombre.trim(),
+        // Si está vacío, mandamos null para que quede NULL en DB (opcional)
+        descripcion: descripcion.trim() ? descripcion.trim() : null,
+      });
+
       setOk("Categoría creada.");
       setNombre("");
+      setDescripcion("");
       await cargar();
     } catch (err) {
       setError(parseFastApiError(err));
@@ -89,7 +102,7 @@ export default function Categorias() {
 
           <form onSubmit={onCrear}>
             <div className="mb-3">
-              <label className="form-label">Nueva categoría</label>
+              <label className="form-label">Nombre (obligatorio)</label>
               <input
                 type="text"
                 className="form-control"
@@ -97,6 +110,20 @@ export default function Categorias() {
                 onChange={(e) => setNombre(e.target.value)}
                 placeholder="Ej: Ciencia ficción"
               />
+            </div>
+
+            <div className="mb-3">
+              <label className="form-label">Descripción (opcional)</label>
+              <input
+                type="text"
+                className="form-control"
+                value={descripcion}
+                onChange={(e) => setDescripcion(e.target.value)}
+                placeholder="Ej: Libros sobre desarrollo backend"
+              />
+              <div className="form-text text-secondary">
+                Si la dejas vacía, se guardará como <code>NULL</code>.
+              </div>
             </div>
 
             <button
@@ -132,7 +159,11 @@ export default function Categorias() {
               <i className="bi bi-list-ul me-2"></i>
               Listado
             </h2>
-            <button className="btn btn-sm btn-outline-light" onClick={cargar} disabled={cargando}>
+            <button
+              className="btn btn-sm btn-outline-light"
+              onClick={cargar}
+              disabled={cargando}
+            >
               <i className="bi bi-arrow-clockwise me-1"></i>
               Recargar
             </button>
@@ -148,14 +179,18 @@ export default function Categorias() {
                 <thead>
                   <tr>
                     <th style={{ width: 90 }}>ID</th>
-                    <th>Nombre</th>
+                    <th style={{ width: 220 }}>Nombre</th>
+                    <th>Descripción</th>
                   </tr>
                 </thead>
                 <tbody>
                   {items.map((c) => (
-                    <tr key={c.id ?? c.nombre}>
+                    <tr key={c.id ?? `${c.nombre}-${c.descripcion ?? ""}`}>
                       <td className="text-secondary">{c.id ?? "-"}</td>
-                      <td className="fw-semibold">{c.nombre ?? c.name ?? "-"}</td>
+                      <td className="fw-semibold">{c.nombre ?? "-"}</td>
+                      <td className="text-secondary">
+                        {c.descripcion ? c.descripcion : <span className="opacity-50">—</span>}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

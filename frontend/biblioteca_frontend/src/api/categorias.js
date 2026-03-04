@@ -1,3 +1,4 @@
+// [MODIFICADO]
 import http from "./http.js";
 
 export async function getCategorias() {
@@ -6,7 +7,7 @@ export async function getCategorias() {
 }
 
 export async function crearCategoria(payload) {
-  // payload típico: { nombre: "..." }
+  // payload: { nombre: string, descripcion?: string|null }
   const { data } = await http.post("/categorias", payload);
   return data;
 }
