@@ -29,3 +29,47 @@ def create_user(db: Session, nombre: str, email: str, password: str) -> User:
 def get_user_by_email(db: Session, email: str) -> User | None:
     # [NUEVO]
     return db.query(User).filter(User.email == email.strip().lower()).first()
+
+
+def list_users(db: Session) -> list[User]:
+    # [NUEVO]
+    return db.query(User).order_by(User.id.asc()).all()
+
+
+def get_user_by_id(db: Session, user_id: int) -> User:
+    # [NUEVO]
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
+    return user
+
+
+def update_user_admin(
+    db: Session,
+    user_id: int,
+    nombre: str | None = None,
+    is_active: bool | None = None,
+    rol: UserRol | None = None,
+) -> User:
+    # [NUEVO]
+    user = get_user_by_id(db, user_id)
+
+    if nombre is not None:
+        user.nombre = nombre.strip()
+
+    if is_active is not None:
+        user.is_active = is_active
+
+    if rol is not None:
+        user.rol = rol
+
+    db.commit()
+    db.refresh(user)
+    return user
+
+
+def admin_reset_password(db: Session, user_id: int, new_password: str) -> None:
+    # [NUEVO]
+    user = get_user_by_id(db, user_id)
+    user.password_hash = hash_password(new_password)
+    db.commit()

@@ -4,6 +4,10 @@ from pydantic import BaseModel, EmailStr, Field
 from models.user import UserRol
 
 
+class MessageResponse(BaseModel):
+    message: str
+
+
 class UserCreate(BaseModel):
     nombre: str = Field(..., min_length=2, max_length=120)
     email: EmailStr

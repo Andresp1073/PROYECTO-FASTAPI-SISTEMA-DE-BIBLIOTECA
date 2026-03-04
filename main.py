@@ -9,6 +9,7 @@ from database import get_db
 from core.settings import settings
 
 from api.auth import router as auth_router
+from api.users import router as users_router
 
 setup_logging()
 logger = logging.getLogger("biblioteca")
@@ -27,6 +28,7 @@ app.add_middleware(
 )
 
 app.include_router(auth_router)
+app.include_router(users_router)
 
 @app.get("/")
 def root():
