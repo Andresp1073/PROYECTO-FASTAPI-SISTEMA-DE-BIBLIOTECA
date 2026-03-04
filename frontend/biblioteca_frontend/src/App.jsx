@@ -15,7 +15,13 @@ import ResetPassword from "./auth/ResetPassword.jsx";
 
 import RutaProtegida from "./layout/RutaProtegida.jsx";
 import MisPrestamos from "./prestamos/MisPrestamos.jsx";
+
 import AdminDashboard from "./admin/AdminDashboard.jsx";
+import AdminCategorias from "./admin/AdminCategorias.jsx";
+import AdminLibros from "./admin/AdminLibros.jsx";
+import AdminUsuarios from "./admin/AdminUsuarios.jsx";
+import AdminPrestamos from "./admin/AdminPrestamos.jsx";
+import AdminCargaMasiva from "./admin/AdminCargaMasiva.jsx";
 
 function NotFound() {
   return (
@@ -90,7 +96,14 @@ export default function App() {
           {/* RUTAS PROTEGIDAS */}
           <Route element={<RutaProtegida />}>
             <Route path="/prestamos" element={<MisPrestamos />} />
+
+            {/* ADMIN */}
             <Route path="/admin" element={<AdminDashboard />} />
+            <Route path="/admin/categorias" element={<AdminCategorias />} />
+            <Route path="/admin/libros" element={<AdminLibros />} />
+            <Route path="/admin/usuarios" element={<AdminUsuarios />} />
+            <Route path="/admin/prestamos" element={<AdminPrestamos />} />
+            <Route path="/admin/carga-masiva" element={<AdminCargaMasiva />} />
           </Route>
 
           <Route path="*" element={<NotFound />} />
