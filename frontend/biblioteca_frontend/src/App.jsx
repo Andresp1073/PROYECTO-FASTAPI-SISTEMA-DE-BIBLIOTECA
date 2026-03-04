@@ -3,6 +3,7 @@ import { Link, Route, Routes } from "react-router-dom";
 import AuthBridge from "./layout/AuthBridge.jsx";
 
 import Home from "./catalogo/Home.jsx";
+import Categorias from "./catalogo/Categorias.jsx";
 
 import Login from "./auth/Login.jsx";
 import Register from "./auth/Register.jsx";
@@ -36,6 +37,11 @@ export default function App() {
           </Link>
 
           <div className="ms-auto d-flex align-items-center gap-2 flex-wrap">
+            <Link to="/categorias" className="btn btn-sm btn-outline-light">
+              <i className="bi bi-tags me-1"></i>
+              Categorías
+            </Link>
+
             <Link to="/prestamos" className="btn btn-sm btn-outline-light">
               <i className="bi bi-journal-check me-1"></i>
               Mis Préstamos
@@ -62,6 +68,7 @@ export default function App() {
       <main className="container py-4 flex-grow-1">
         <Routes>
           <Route path="/" element={<Home />} />
+          <Route path="/categorias" element={<Categorias />} />
 
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
