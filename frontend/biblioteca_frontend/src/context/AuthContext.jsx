@@ -1,3 +1,4 @@
+// [MODIFICADO]
 import { createContext, useContext, useMemo, useState } from "react";
 
 const AuthContext = createContext(null);
@@ -9,11 +10,16 @@ export function AuthProvider({ children }) {
     setAccessToken(null);
   };
 
+  const redirectToLogin = () => {
+    window.location.href = "/login";
+  };
+
   const value = useMemo(
     () => ({
       accessToken,
       setAccessToken,
       clearAuth,
+      redirectToLogin,
       isAuthenticated: Boolean(accessToken),
     }),
     [accessToken]
@@ -22,11 +28,8 @@ export function AuthProvider({ children }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
-// Hook de conveniencia
 export function useAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx) {
-    throw new Error("useAuth debe usarse dentro de <AuthProvider>");
-  }
+  if (!ctx) throw new Error("useAuth debe usarse dentro de <AuthProvider>");
   return ctx;
 }

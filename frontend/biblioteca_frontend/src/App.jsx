@@ -1,7 +1,11 @@
 // [MODIFICADO]
+import AuthBridge from "./layout/AuthBridge.jsx";
+
 export default function App() {
   return (
     <div className="min-vh-100 d-flex flex-column">
+      <AuthBridge />
+
       <nav className="navbar navbar-expand-lg bg-body-tertiary border-bottom">
         <div className="container">
           <span className="navbar-brand fw-semibold">
@@ -17,10 +21,10 @@ export default function App() {
 
       <main className="container py-4 flex-grow-1">
         <div className="p-4 rounded-3 border bg-body-tertiary">
-          <h1 className="h4 mb-2">Base lista ✅</h1>
+          <h1 className="h4 mb-2">Axios listo ✅</h1>
           <p className="mb-0 text-secondary">
-            Bootstrap 5 + Icons vía CDN y tema oscuro activado con{" "}
-            <code>data-bs-theme="dark"</code>.
+            Cliente central con <code>refresh</code> automático (cookie HttpOnly)
+            y access token en memoria.
           </p>
         </div>
       </main>
