@@ -2,6 +2,10 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 
+class MessageResponse(BaseModel):
+    message: str
+
+
 class CategoriaCreate(BaseModel):
     nombre: str = Field(..., min_length=2, max_length=120)
     descripcion: str | None = None
