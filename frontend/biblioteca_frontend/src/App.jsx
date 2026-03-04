@@ -5,6 +5,7 @@ import AuthBridge from "./layout/AuthBridge.jsx";
 import Home from "./catalogo/Home.jsx";
 import Categorias from "./catalogo/Categorias.jsx";
 import ListadoLibros from "./catalogo/ListadoLibros.jsx";
+import DetalleLibro from "./catalogo/DetalleLibro.jsx";
 
 import Login from "./auth/Login.jsx";
 import Register from "./auth/Register.jsx";
@@ -75,7 +76,9 @@ export default function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/categorias" element={<Categorias />} />
+
           <Route path="/libros" element={<ListadoLibros />} />
+          <Route path="/libros/:id" element={<DetalleLibro />} />
 
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
