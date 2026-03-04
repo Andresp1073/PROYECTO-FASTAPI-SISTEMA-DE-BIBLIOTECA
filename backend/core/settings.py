@@ -27,8 +27,12 @@ class Settings(BaseSettings):
     # Admin seed
     ADMIN_EMAIL: str = "andresmauriciope1073@gmail.com"
     ADMIN_PASSWORD: str = "Admin123*"
-    # CORS: en PROD se puede permitir varios
-    CORS_ORIGINS: str = ""  # ejemplo: "http://localhost:5173,https://miweb.com"
+
+    # 🔴 AGREGA ESTA VARIABLE
+    ENV: str = "DEV"
+
+    # CORS
+    CORS_ORIGINS: str = ""
 
     class Config:
         env_file = ".env"
