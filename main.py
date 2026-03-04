@@ -3,6 +3,7 @@ from fastapi import FastAPI, Depends
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from core.logging_conf import setup_logging
 from database import get_db
@@ -11,6 +12,7 @@ from core.settings import settings
 from api.auth import router as auth_router
 from api.users import router as users_router
 from api.categorias import router as categorias_router
+from api.uploads import router as uploads_router
 
 setup_logging()
 logger = logging.getLogger("biblioteca")
@@ -28,9 +30,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Static files
+app.mount("/static", StaticFiles(directory="static"), name="static")
+
 app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(categorias_router)
+app.include_router(uploads_router)
 
 @app.get("/")
 def root():
