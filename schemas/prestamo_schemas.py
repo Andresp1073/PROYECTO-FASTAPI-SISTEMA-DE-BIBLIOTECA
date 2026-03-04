@@ -4,6 +4,10 @@ from pydantic import BaseModel
 from models.prestamo import PrestamoEstado
 
 
+class MessageResponse(BaseModel):
+    message: str
+
+
 class PrestamoCreate(BaseModel):
     libro_id: int
 

@@ -82,5 +82,5 @@ def mis_prestamos(db: Session, user: User) -> list[Prestamo]:
 
 
 def listar_todos(db: Session) -> list[Prestamo]:
-    # [NUEVO]
+    # [NUEVO].
     return db.query(Prestamo).order_by(Prestamo.id.desc()).all()

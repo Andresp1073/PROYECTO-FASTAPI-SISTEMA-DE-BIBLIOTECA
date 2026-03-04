@@ -14,6 +14,7 @@ from api.users import router as users_router
 from api.categorias import router as categorias_router
 from api.uploads import router as uploads_router
 from api.libros import router as libros_router
+from api.prestamos import router as prestamos_router
 
 setup_logging()
 logger = logging.getLogger("biblioteca")
@@ -38,6 +39,7 @@ app.include_router(users_router)
 app.include_router(categorias_router)
 app.include_router(uploads_router)
 app.include_router(libros_router)
+app.include_router(prestamos_router)
 
 @app.get("/")
 def root():
