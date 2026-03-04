@@ -36,9 +36,11 @@ export async function verifyEmail(payload) {
   return data;
 }
 
+// [MODIFICADO]
+
 export async function forgotPassword(payload) {
-  // { email }
-  const { data } = await http.post("/auth/forgot-password", payload);
+  // Endpoint real del backend
+  const { data } = await http.post("/auth/request-reset-password", payload);
   return data;
 }
 
