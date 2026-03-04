@@ -1,9 +1,12 @@
+// [MODIFICADO]
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import Spinner from "../components/Spinner.jsx";
 import Alerta from "../components/Alerta.jsx";
 import { getLibros } from "../api/libros.js";
 import { getCategorias } from "../api/categorias.js";
+
+const API_BASE = "http://127.0.0.1:8000";
 
 function parseFastApiError(err) {
   const data = err?.response?.data;
@@ -29,6 +32,50 @@ function normalizarListado(data) {
   if (Array.isArray(data)) return data;
   if (Array.isArray(data?.items)) return data.items;
   return [];
+}
+
+function resolveCoverUrl(coverUrl) {
+  if (!coverUrl) return "";
+  const s = String(coverUrl).trim();
+  if (!s) return "";
+  if (s.startsWith("http://") || s.startsWith("https://")) return s;
+  if (s.startsWith("/")) return `${API_BASE}${s}`;
+  return `${API_BASE}/${s}`;
+}
+
+function LibroCover({ coverUrl, titulo }) {
+  const [fallo, setFallo] = useState(false);
+  const src = resolveCoverUrl(coverUrl);
+
+  // Si no hay src o falló, mostramos "?"
+  if (!src || fallo) {
+    return (
+      <div
+        className="d-flex align-items-center justify-content-center bg-dark border rounded-3"
+        style={{ width: "100%", height: 220 }}
+        aria-label="Sin portada"
+        title="Sin portada"
+      >
+        <div style={{ fontSize: 64, lineHeight: 1 }} className="text-secondary">
+          ?
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="border rounded-3 overflow-hidden bg-dark"
+      style={{ width: "100%", height: 220 }}
+    >
+      <img
+        src={src}
+        alt={`Portada de ${titulo || "libro"}`}
+        style={{ width: "100%", height: "100%", objectFit: "cover" }}
+        onError={() => setFallo(true)}
+      />
+    </div>
+  );
 }
 
 export default function ListadoLibros() {
@@ -66,8 +113,7 @@ export default function ListadoLibros() {
       const titulo = String(b.titulo ?? b.title ?? "").toLowerCase();
       const autor = String(b.autor ?? b.author ?? "").toLowerCase();
 
-      const matchText =
-        !text || titulo.includes(text) || autor.includes(text);
+      const matchText = !text || titulo.includes(text) || autor.includes(text);
 
       const catLibro = String(
         b.categoria_id ?? b.categoriaId ?? b.categoria?.id ?? ""
@@ -106,7 +152,7 @@ export default function ListadoLibros() {
                 className="form-control"
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Ej: Dune, García Márquez..."
+                placeholder="Ej: Clean Code, García Márquez..."
               />
             </div>
 
@@ -146,40 +192,34 @@ export default function ListadoLibros() {
           </div>
         ) : (
           <div className="row g-3">
-            {filtrados.map((b) => (
-              <div key={b.id} className="col-12 col-md-6 col-lg-4">
-                <div className="p-3 border rounded-3 bg-body-tertiary h-100 d-flex flex-column">
-                  <div className="d-flex align-items-start justify-content-between gap-2">
-                    <div>
-                      <div className="fw-semibold">
-                        {b.titulo ?? b.title ?? "Sin título"}
-                      </div>
+            {filtrados.map((b) => {
+              const titulo = b.titulo ?? b.title ?? "Sin título";
+
+              return (
+                <div key={b.id} className="col-12 col-sm-6 col-md-4 col-lg-3">
+                  <div className="p-3 border rounded-3 bg-body-tertiary h-100 d-flex flex-column">
+                    <LibroCover coverUrl={b.cover_url} titulo={titulo} />
+
+                    <div className="mt-3 text-center">
+                      <div className="fw-semibold">{titulo}</div>
                       <div className="text-secondary small">
-                        {b.autor ?? b.author ?? "Autor desconocido"}
+                        {b.autor ?? b.author ?? "—"}
                       </div>
                     </div>
-                    <span className="badge text-bg-secondary">ID {b.id}</span>
-                  </div>
 
-                  {b.descripcion && (
-                    <div className="text-secondary small mt-2">
-                      {String(b.descripcion).slice(0, 120)}
-                      {String(b.descripcion).length > 120 ? "..." : ""}
+                    <div className="mt-auto pt-3">
+                      <Link
+                        to={`/libros/${b.id}`}
+                        className="btn btn-sm btn-light w-100"
+                      >
+                        Ver detalles
+                        <i className="bi bi-arrow-right ms-2"></i>
+                      </Link>
                     </div>
-                  )}
-
-                  <div className="mt-auto pt-3">
-                    <Link
-                      to={`/libros/${b.id}`}
-                      className="btn btn-sm btn-light w-100"
-                    >
-                      Ver detalle
-                      <i className="bi bi-arrow-right ms-2"></i>
-                    </Link>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

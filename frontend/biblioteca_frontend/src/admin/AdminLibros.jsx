@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import http from "../api/http.js";
 import { getCategorias } from "../api/categorias.js";
 import { getLibros } from "../api/libros.js";
+import { uploadCover } from "../api/uploads.js";
 import Spinner from "../components/Spinner.jsx";
 import Alerta from "../components/Alerta.jsx";
 
@@ -35,15 +36,27 @@ export default function AdminLibros() {
   const [autor, setAutor] = useState("");
   const [isbn, setIsbn] = useState("");
   const [resumen, setResumen] = useState("");
-  const [coverUrl, setCoverUrl] = useState("");
+
   const [categoriaId, setCategoriaId] = useState("");
   const [estado, setEstado] = useState("DISPONIBLE");
+
+  // Cover
+  const [coverUrl, setCoverUrl] = useState("");
+  const [coverFile, setCoverFile] = useState(null);
+  const [coverPreview, setCoverPreview] = useState("");
+  const [subiendoCover, setSubiendoCover] = useState(false);
 
   const [editandoId, setEditandoId] = useState(null);
 
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
   const [ok, setOk] = useState("");
+
+  const categoriaNombrePorId = useMemo(() => {
+    const map = new Map();
+    categorias.forEach((c) => map.set(String(c.id), c.nombre));
+    return map;
+  }, [categorias]);
 
   const cargar = async () => {
     setError("");
@@ -64,20 +77,29 @@ export default function AdminLibros() {
     cargar();
   }, []);
 
-  const categoriaNombrePorId = useMemo(() => {
-    const map = new Map();
-    categorias.forEach((c) => map.set(String(c.id), c.nombre));
-    return map;
-  }, [categorias]);
+  // Preview local al seleccionar archivo
+  useEffect(() => {
+    if (!coverFile) {
+      setCoverPreview("");
+      return;
+    }
+    const url = URL.createObjectURL(coverFile);
+    setCoverPreview(url);
+    return () => URL.revokeObjectURL(url);
+  }, [coverFile]);
 
   const limpiar = () => {
     setTitulo("");
     setAutor("");
     setIsbn("");
     setResumen("");
-    setCoverUrl("");
     setCategoriaId("");
     setEstado("DISPONIBLE");
+
+    setCoverUrl("");
+    setCoverFile(null);
+    setCoverPreview("");
+
     setEditandoId(null);
   };
 
@@ -89,21 +111,42 @@ export default function AdminLibros() {
   };
 
   const construirPayload = () => {
-    // Ajustado al esquema real de tu tabla:
-    // titulo, autor, isbn, resumen, cover_url, categoria_id, estado
-    const payload = {
+    return {
       titulo: titulo.trim(),
       autor: autor.trim(),
+      isbn: isbn.trim() ? isbn.trim() : null,
+      resumen: resumen.trim() ? resumen.trim() : null,
+      cover_url: coverUrl.trim() ? coverUrl.trim() : null,
       categoria_id: Number(categoriaId),
       estado: estado || "DISPONIBLE",
     };
+  };
 
-    // Opcionales
-    payload.isbn = isbn.trim() ? isbn.trim() : null;
-    payload.resumen = resumen.trim() ? resumen.trim() : null;
-    payload.cover_url = coverUrl.trim() ? coverUrl.trim() : null;
+  const onSubirCover = async () => {
+    setError("");
+    setOk("");
 
-    return payload;
+    if (!coverFile) {
+      setError("Selecciona una imagen primero.");
+      return;
+    }
+
+    setSubiendoCover(true);
+    try {
+      const url = await uploadCover(coverFile);
+
+      if (!url) {
+        setError("El backend no devolvió una URL de portada.");
+        return;
+      }
+
+      setCoverUrl(url);
+      setOk("Portada subida correctamente.");
+    } catch (err) {
+      setError(parseFastApiError(err));
+    } finally {
+      setSubiendoCover(false);
+    }
   };
 
   const crear = async (e) => {
@@ -118,7 +161,6 @@ export default function AdminLibros() {
     }
 
     try {
-      // Swagger: POST /libros/ (con slash final)
       await http.post("/libros/", construirPayload());
       setOk("Libro creado.");
       limpiar();
@@ -170,7 +212,11 @@ export default function AdminLibros() {
     setAutor(lib.autor ?? "");
     setIsbn(lib.isbn ?? "");
     setResumen(lib.resumen ?? "");
+
     setCoverUrl(lib.cover_url ?? "");
+    setCoverFile(null);
+    setCoverPreview("");
+
     setCategoriaId(
       lib.categoria_id !== undefined && lib.categoria_id !== null
         ? String(lib.categoria_id)
@@ -249,14 +295,88 @@ export default function AdminLibros() {
               />
             </div>
 
+            {/* COVER UPLOAD */}
             <div className="mb-3">
-              <label className="form-label">Cover URL (opcional)</label>
+              <label className="form-label">Portada (subir imagen)</label>
+
               <input
+                type="file"
                 className="form-control"
-                value={coverUrl}
-                onChange={(e) => setCoverUrl(e.target.value)}
-                placeholder="https://..."
+                accept="image/*"
+                onChange={(e) => setCoverFile(e.target.files?.[0] || null)}
               />
+
+              {(coverPreview || coverUrl) && (
+                <div className="mt-2 d-flex align-items-center gap-3 flex-wrap">
+                  <div
+                    className="border rounded-3 overflow-hidden"
+                    style={{ width: 84, height: 120 }}
+                  >
+                    <img
+                      src={coverPreview || coverUrl}
+                      alt="Preview portada"
+                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    />
+                  </div>
+
+                  <div className="small text-secondary">
+                    <div className="fw-semibold text-body">Preview</div>
+                    <div style={{ wordBreak: "break-all" }}>
+                      {coverUrl ? (
+                        <>
+                          URL guardada:
+                          <div>
+                            <code>{coverUrl}</code>
+                          </div>
+                        </>
+                      ) : (
+                        "Aún no has subido la imagen."
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-2 d-flex gap-2">
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-light"
+                  onClick={onSubirCover}
+                  disabled={subiendoCover || !coverFile}
+                >
+                  {subiendoCover ? (
+                    <>
+                      <span
+                        className="spinner-border spinner-border-sm me-2"
+                        role="status"
+                        aria-hidden="true"
+                      ></span>
+                      Subiendo...
+                    </>
+                  ) : (
+                    <>
+                      <i className="bi bi-upload me-1"></i>
+                      Subir portada
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  className="btn btn-sm btn-outline-secondary"
+                  onClick={() => {
+                    setCoverFile(null);
+                    setCoverPreview("");
+                    setCoverUrl("");
+                  }}
+                >
+                  Limpiar portada
+                </button>
+              </div>
+
+              <div className="form-text text-secondary">
+                Se sube a <code>POST /uploads/covers</code> (ADMIN).
+              </div>
             </div>
 
             <div className="mb-3">
@@ -267,12 +387,9 @@ export default function AdminLibros() {
                 onChange={(e) => setEstado(e.target.value)}
               >
                 <option value="DISPONIBLE">DISPONIBLE</option>
-                <option value="NO_DISPONIBLE">NO_DISPONIBLE</option>
                 <option value="PRESTADO">PRESTADO</option>
+                <option value="NO_DISPONIBLE">NO_DISPONIBLE</option>
               </select>
-              <div className="form-text text-secondary">
-                Si tu backend solo acepta ciertos valores, usa los mismos del Swagger.
-              </div>
             </div>
 
             <button className="btn btn-light w-100" type="submit">
@@ -291,7 +408,8 @@ export default function AdminLibros() {
           </form>
 
           <div className="mt-3 small text-secondary">
-            Create: <code>POST /libros/</code>
+            Crear libro: <code>POST /libros/</code> • Subir portada:{" "}
+            <code>POST /uploads/covers</code>
           </div>
         </div>
       </div>

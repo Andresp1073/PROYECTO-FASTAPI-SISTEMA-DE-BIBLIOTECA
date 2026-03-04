@@ -6,6 +6,8 @@ import { getCategorias } from "../api/categorias.js";
 import Alerta from "../components/Alerta.jsx";
 import Spinner from "../components/Spinner.jsx";
 
+const API_BASE = "http://127.0.0.1:8000";
+
 function parseFastApiError(err) {
   const data = err?.response?.data;
 
@@ -19,6 +21,23 @@ function parseFastApiError(err) {
   }
 
   return data?.detail || data?.message || "Ocurrió un error.";
+}
+
+function normalizarListado(data) {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.items)) return data.items;
+  return [];
+}
+
+function resolveCoverUrl(coverUrl) {
+  if (!coverUrl) return "";
+  const s = String(coverUrl).trim();
+  if (!s) return "";
+  if (s.startsWith("http://") || s.startsWith("https://")) return s;
+
+  // Asegura slash
+  if (s.startsWith("/")) return `${API_BASE}${s}`;
+  return `${API_BASE}/${s}`;
 }
 
 export default function DetalleLibro() {
@@ -46,8 +65,7 @@ export default function DetalleLibro() {
         getCategorias(),
       ]);
 
-      const cats = Array.isArray(dataCats) ? dataCats : dataCats?.items || [];
-      setCategorias(cats);
+      setCategorias(normalizarListado(dataCats));
       setLibro(dataLibro);
     } catch (err) {
       setError(parseFastApiError(err));
@@ -77,14 +95,14 @@ export default function DetalleLibro() {
   })();
 
   const estado = libro?.estado ?? "—";
-
-  // Badge según estado (si backend usa otros valores, igual se muestra)
   const badgeClass =
     estado === "DISPONIBLE"
       ? "text-bg-success"
       : estado === "PRESTADO"
       ? "text-bg-warning"
       : "text-bg-secondary";
+
+  const coverSrc = resolveCoverUrl(libro?.cover_url);
 
   return (
     <div className="row justify-content-center">
@@ -131,8 +149,7 @@ export default function DetalleLibro() {
                   {libro.titulo ?? "Sin título"}
                 </div>
                 <div className="text-secondary">
-                  Autor:{" "}
-                  <span className="text-body">{libro.autor ?? "—"}</span>
+                  Autor: <span className="text-body">{libro.autor ?? "—"}</span>
                 </div>
               </div>
 
@@ -142,19 +159,40 @@ export default function DetalleLibro() {
             </div>
 
             {/* Cover */}
-            {libro.cover_url ? (
+            {coverSrc ? (
               <div className="mt-4">
                 <div className="text-secondary small mb-2">Portada</div>
-                <div className="border rounded-3 overflow-hidden">
+
+                <div
+                  className="border rounded-3 overflow-hidden"
+                  style={{ width: 160, height: 220 }}
+                >
                   <img
-                    src={libro.cover_url}
+                    src={coverSrc}
                     alt={`Portada de ${libro.titulo}`}
-                    className="img-fluid"
-                    style={{ width: "100%", maxHeight: 360, objectFit: "cover" }}
+                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    onError={() =>
+                      setError(
+                        `No se pudo cargar la portada. cover_url="${libro.cover_url}" | src="${coverSrc}"`
+                      )
+                    }
                   />
                 </div>
+
+                <div className="small text-secondary mt-2">
+                  <div>
+                    cover_url: <code>{String(libro.cover_url || "")}</code>
+                  </div>
+                  <div>
+                    src final: <code>{coverSrc}</code>
+                  </div>
+                </div>
               </div>
-            ) : null}
+            ) : (
+              <div className="mt-4 text-secondary">
+                No hay portada (cover_url vacío).
+              </div>
+            )}
 
             <hr className="my-4" />
 
