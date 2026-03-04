@@ -63,10 +63,11 @@ def decode_access_token(token: str) -> Dict[str, Any]:
 
 
 def build_refresh_cookie_kwargs() -> dict:
-    # [NUEVO]
+    # [MODIFICADO]
+    is_prod = settings.ENV.upper() == "PROD"
     return {
         "httponly": True,
-        "secure": True,      # en local sin https puede no guardarse (lo ajustaremos luego si hace falta)
+        "secure": True if is_prod else False,  # en DEV permite localhost sin https
         "samesite": "lax",
         "path": "/",
     }
