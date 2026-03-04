@@ -4,6 +4,10 @@ from pydantic import BaseModel, Field
 from models.libro import LibroEstado
 
 
+class MessageResponse(BaseModel):
+    message: str
+
+
 class LibroCreate(BaseModel):
     titulo: str = Field(..., min_length=2, max_length=255)
     autor: str = Field(..., min_length=2, max_length=255)

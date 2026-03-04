@@ -13,6 +13,7 @@ from api.auth import router as auth_router
 from api.users import router as users_router
 from api.categorias import router as categorias_router
 from api.uploads import router as uploads_router
+from api.libros import router as libros_router
 
 setup_logging()
 logger = logging.getLogger("biblioteca")
@@ -30,13 +31,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Static files
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 app.include_router(auth_router)
 app.include_router(users_router)
 app.include_router(categorias_router)
 app.include_router(uploads_router)
+app.include_router(libros_router)
 
 @app.get("/")
 def root():
