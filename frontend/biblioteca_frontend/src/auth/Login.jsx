@@ -1,114 +1,93 @@
+// src/auth/Login.jsx
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
-import { login as apiLogin } from "../api/auth.js";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 import Alerta from "../components/Alerta.jsx";
 
-function parseFastApiError(err) {
-  const data = err?.response?.data;
-
-  if (Array.isArray(data?.detail)) {
-    return data.detail
-      .map((e) => {
-        const loc = Array.isArray(e.loc) ? e.loc.join(".") : "";
-        return `${loc}: ${e.msg}`;
-      })
-      .join(" | ");
-  }
-
-  return data?.detail || data?.message || "Error inesperado";
-}
-
 export default function Login() {
   const navigate = useNavigate();
-  const { setAccessToken, loadMe, clearAuth } = useAuth();
+  const location = useLocation();
+  const { login, parseFastApiError } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  const [cargando, setCargando] = useState(false);
   const [error, setError] = useState("");
-  const [ok, setOk] = useState("");
-  const [loading, setLoading] = useState(false);
 
   const onSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    setOk("");
-    setLoading(true);
+    setCargando(true);
 
     try {
-      // 1) login -> token
-      const data = await apiLogin({ email, password });
+      // ✅ login devuelve el user ya cargado
+      const { me } = await login({ email, password });
 
-      const token = data?.access_token || data?.accessToken || data?.token || null;
-      if (!token) {
-        throw new Error("El backend no devolvió access_token");
+      // si venías de una ruta protegida, vuelve ahí
+      const from = location.state?.from;
+
+      if (from) {
+        navigate(from, { replace: true });
+      } else {
+        // redirección por rol
+        if (me?.rol === "ADMIN") navigate("/admin", { replace: true });
+        else navigate("/libros", { replace: true });
       }
-
-      // 2) guardar token en memoria
-      setAccessToken(token);
-
-      // 3) cargar /auth/me para rol + datos
-      try {
-        await loadMe();
-      } catch {
-        // si falla /auth/me, igual dejamos entrar pero sin rol (no verá admin)
-      }
-
-      setOk("Sesión iniciada");
-      navigate("/", { replace: true });
     } catch (err) {
-      clearAuth();
-      setError(parseFastApiError(err));
+      const msg =
+        typeof err?.message === "string" && err.message && err.message !== "Error"
+          ? err.message
+          : parseFastApiError(err);
+      setError(msg);
     } finally {
-      setLoading(false);
+      setCargando(false);
     }
   };
 
   return (
-    <div className="container py-4" style={{ maxWidth: 520 }}>
-      <div className="p-4 border rounded bg-body-tertiary">
-        <h3 className="mb-3">
-          <i className="bi bi-box-arrow-in-right me-2" />
-          Login
-        </h3>
+    <div className="container py-5" style={{ maxWidth: 520 }}>
+      <h1 className="h3 mb-3">
+        <i className="bi bi-box-arrow-in-right me-2" />
+        Iniciar sesión
+      </h1>
 
-        <Alerta mensaje={error} />
-        <Alerta type="success" mensaje={ok} />
+      <Alerta mensaje={error} />
 
-        <form onSubmit={onSubmit}>
-          <div className="mb-3">
-            <label className="form-label">Email</label>
-            <input
-              className="form-control"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
+      <form onSubmit={onSubmit} className="p-4 border rounded-3 bg-body-tertiary">
+        <label className="form-label">Email</label>
+        <input
+          type="email"
+          className="form-control"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          autoComplete="email"
+          required
+        />
 
-          <div className="mb-3">
-            <label className="form-label">Contraseña</label>
-            <input
-              className="form-control"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </div>
+        <label className="form-label mt-3">Contraseña</label>
+        <input
+          type="password"
+          className="form-control"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          autoComplete="current-password"
+          required
+        />
 
-          <button className="btn btn-light w-100" disabled={loading}>
-            {loading ? "Entrando..." : "Entrar"}
-          </button>
+        <button className="btn btn-light w-100 mt-4" disabled={cargando}>
+          {cargando ? "Ingresando..." : "Entrar"}
+        </button>
 
-          <div className="d-flex justify-content-between mt-3">
-            <Link to="/forgot-password">¿Olvidaste tu contraseña?</Link>
-            <Link to="/register">Crear cuenta</Link>
-          </div>
-        </form>
-      </div>
+        <div className="d-flex justify-content-between mt-3 small">
+          <Link to="/register" className="text-decoration-none">
+            Crear cuenta
+          </Link>
+          <Link to="/forgot-password" className="text-decoration-none">
+            ¿Olvidaste tu contraseña?
+          </Link>
+        </div>
+      </form>
     </div>
   );
 }

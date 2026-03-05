@@ -1,47 +1,43 @@
-import React from "react";
-import { Navigate, Outlet, useLocation } from "react-router-dom";
+// src/layout/RutaProtegida.jsx
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import Spinner from "../components/Spinner.jsx";
 
-export default function RutaProtegida({ requiredRole }) {
-  const { isAuthenticated, user, loading } = useAuth();
+export default function RutaProtegida({ children, adminOnly = false }) {
   const location = useLocation();
+  const { isAuthenticated, user, booting } = useAuth();
 
-  // 1) Mientras cargas /auth/me o estás restaurando sesión en memoria
-  if (loading) {
+  // ✅ Nunca devolver null (pantalla vacía)
+  if (booting) {
     return (
       <div className="container py-5">
-        <div className="d-flex align-items-center gap-3">
-          <div className="spinner-border" role="status" aria-label="Cargando" />
-          <div>Cargando...</div>
+        <div className="p-4 border rounded-3 bg-body-tertiary">
+          <Spinner texto="Cargando sesión..." />
         </div>
       </div>
     );
   }
 
-  // 2) Si no hay sesión -> login
+  // No logueado -> login
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace state={{ from: location }} />;
+    return <Navigate to="/login" replace state={{ from: location.pathname }} />;
   }
 
-  // 3) Si piden rol ADMIN y el usuario no lo es -> home
-  if (requiredRole) {
-    const rol = user?.rol;
-    if (!rol) {
-      // Usuario autenticado pero aún no llegó /auth/me (o falló). Evita crashear.
-      return (
-        <div className="container py-5">
-          <div className="alert alert-warning mb-0">
-            No se pudo cargar el rol del usuario. Intenta recargar.
-          </div>
+  // Logueado pero user aún no cargó (raro, pero posible)
+  if (!user) {
+    return (
+      <div className="container py-5">
+        <div className="p-4 border rounded-3 bg-body-tertiary">
+          <Spinner texto="Cargando usuario..." />
         </div>
-      );
-    }
-
-    if (rol !== requiredRole) {
-      return <Navigate to="/" replace />;
-    }
+      </div>
+    );
   }
 
-  // 4) Render normal
-  return <Outlet />;
+  // AdminOnly
+  if (adminOnly && user?.rol !== "ADMIN") {
+    return <Navigate to="/libros" replace />;
+  }
+
+  return children;
 }

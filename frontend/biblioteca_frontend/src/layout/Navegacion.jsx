@@ -1,28 +1,25 @@
-import React from "react";
+// src/layout/Navegacion.jsx
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 
 export default function Navegacion() {
-  const { isAuthenticated, user, logout } = useAuth();
   const navigate = useNavigate();
+  const { user, isAuthenticated, logout } = useAuth();
 
-  // Mantienes tu regla: navbar oculta si NO estás logueado
   if (!isAuthenticated) return null;
 
   const esAdmin = user?.rol === "ADMIN";
 
-  const onLogout = async () => {
-    try {
-      await logout(); // tu logout debería llamar /auth/logout y limpiar memoria
-    } finally {
-      navigate("/login", { replace: true });
-    }
+  const salir = async () => {
+    await logout();
+    navigate("/login", { replace: true });
   };
 
   return (
-    <nav className="navbar navbar-expand-lg bg-body-tertiary border-bottom">
+    <nav className="navbar navbar-expand-lg navbar-dark bg-dark border-bottom">
       <div className="container">
-        <Link className="navbar-brand" to="/">
+        <Link className="navbar-brand fw-semibold" to={esAdmin ? "/admin" : "/"}>
+          <i className="bi bi-journal-bookmark-fill me-2" />
           Biblioteca
         </Link>
 
@@ -30,57 +27,95 @@ export default function Navegacion() {
           className="navbar-toggler"
           type="button"
           data-bs-toggle="collapse"
-          data-bs-target="#nav"
-          aria-controls="nav"
+          data-bs-target="#navMain"
+          aria-controls="navMain"
           aria-expanded="false"
           aria-label="Toggle navigation"
         >
-          <span className="navbar-toggler-icon" />
+          <span className="navbar-toggler-icon"></span>
         </button>
 
-        <div className="collapse navbar-collapse" id="nav">
+        <div className="collapse navbar-collapse" id="navMain">
           <ul className="navbar-nav me-auto mb-2 mb-lg-0">
-            <li className="nav-item">
-              <NavLink className="nav-link" to="/">
-                Home
-              </NavLink>
-            </li>
+            {!esAdmin ? (
+              <>
+                <li className="nav-item">
+                  <NavLink className="nav-link" to="/categorias">
+                    <i className="bi bi-tags me-1" />
+                    Categorías
+                  </NavLink>
+                </li>
 
-            <li className="nav-item">
-              <NavLink className="nav-link" to="/categorias">
-                Categorías
-              </NavLink>
-            </li>
+                <li className="nav-item">
+                  <NavLink className="nav-link" to="/libros">
+                    <i className="bi bi-book me-1" />
+                    Libros
+                  </NavLink>
+                </li>
 
-            <li className="nav-item">
-              <NavLink className="nav-link" to="/libros">
-                Libros
-              </NavLink>
-            </li>
+                <li className="nav-item">
+                  <NavLink className="nav-link" to="/prestamos">
+                    <i className="bi bi-journal-check me-1" />
+                    Mis Préstamos
+                  </NavLink>
+                </li>
+              </>
+            ) : (
+              <>
+                <li className="nav-item">
+                  <NavLink className="nav-link" to="/admin">
+                    <i className="bi bi-speedometer2 me-1" />
+                    Panel
+                  </NavLink>
+                </li>
 
-            <li className="nav-item">
-              <NavLink className="nav-link" to="/prestamos/mis-prestamos">
-                Mis Préstamos
-              </NavLink>
-            </li>
+                <li className="nav-item">
+                  <NavLink className="nav-link" to="/admin/categorias">
+                    <i className="bi bi-tags me-1" />
+                    Categorías
+                  </NavLink>
+                </li>
 
-            {esAdmin && (
-              <li className="nav-item">
-                <NavLink className="nav-link" to="/admin">
-                  Admin
-                </NavLink>
-              </li>
+                {/* ✅ ADMIN LIBROS */}
+                <li className="nav-item">
+                  <NavLink className="nav-link" to="/admin/libros">
+                    <i className="bi bi-book me-1" />
+                    Libros
+                  </NavLink>
+                </li>
+
+                <li className="nav-item">
+                  <NavLink className="nav-link" to="/admin/prestamos">
+                    <i className="bi bi-clipboard-check me-1" />
+                    Préstamos
+                  </NavLink>
+                </li>
+
+                <li className="nav-item">
+                  <NavLink className="nav-link" to="/admin/usuarios">
+                    <i className="bi bi-people me-1" />
+                    Usuarios
+                  </NavLink>
+                </li>
+
+                <li className="nav-item">
+                  <NavLink className="nav-link" to="/admin/carga-masiva">
+                    <i className="bi bi-upload me-1" />
+                    Carga Masiva
+                  </NavLink>
+                </li>
+              </>
             )}
           </ul>
 
           <div className="d-flex align-items-center gap-3">
-            <div className="small text-body-secondary">
-              {user?.nombre ? user.nombre : "Usuario"}{" "}
-              {user?.rol ? `(${user.rol})` : ""}
+            <div className="text-secondary small d-none d-lg-block">
+              <span className="text-light">{user?.nombre ?? "Usuario"}</span>{" "}
+              <span className="badge text-bg-secondary">{user?.rol ?? "—"}</span>
             </div>
 
-            <button className="btn btn-outline-danger btn-sm" onClick={onLogout}>
-              <i className="bi bi-box-arrow-right me-1" />
+            <button className="btn btn-outline-light btn-sm" onClick={salir}>
+              <i className="bi bi-box-arrow-right me-2" />
               Salir
             </button>
           </div>

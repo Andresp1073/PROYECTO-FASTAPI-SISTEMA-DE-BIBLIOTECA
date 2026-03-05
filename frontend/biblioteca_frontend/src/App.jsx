@@ -1,4 +1,4 @@
-import React from "react";
+// src/App.jsx
 import { Routes, Route, Navigate } from "react-router-dom";
 
 import Navegacion from "./layout/Navegacion.jsx";
@@ -11,16 +11,14 @@ import VerifyEmail from "./auth/VerifyEmail.jsx";
 import ForgotPassword from "./auth/ForgotPassword.jsx";
 import ResetPassword from "./auth/ResetPassword.jsx";
 
-// User
+// User pages
 import Home from "./catalogo/Home.jsx";
 import Categorias from "./catalogo/Categorias.jsx";
 import ListadoLibros from "./catalogo/ListadoLibros.jsx";
 import DetalleLibro from "./catalogo/DetalleLibro.jsx";
-
-// Prestamos
 import MisPrestamos from "./prestamos/MisPrestamos.jsx";
 
-// Admin
+// Admin pages
 import AdminDashboard from "./admin/AdminDashboard.jsx";
 import AdminCategorias from "./admin/AdminCategorias.jsx";
 import AdminLibros from "./admin/AdminLibros.jsx";
@@ -34,33 +32,106 @@ export default function App() {
       <Navegacion />
 
       <Routes>
-        {/* PUBLIC */}
+        {/* ===== PUBLIC ===== */}
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/auth/verify-email" element={<VerifyEmail />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
 
-        {/* USER PROTEGIDO */}
-        <Route element={<RutaProtegida />}>
-          <Route path="/" element={<Home />} />
-          <Route path="/categorias" element={<Categorias />} />
-          <Route path="/libros" element={<ListadoLibros />} />
-          <Route path="/libros/:id" element={<DetalleLibro />} />
-          <Route path="/prestamos/mis-prestamos" element={<MisPrestamos />} />
-        </Route>
+        {/* ===== USER (requiere login) ===== */}
+        <Route
+          path="/"
+          element={
+            <RutaProtegida>
+              <Home />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/categorias"
+          element={
+            <RutaProtegida>
+              <Categorias />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/libros"
+          element={
+            <RutaProtegida>
+              <ListadoLibros />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/libros/:id"
+          element={
+            <RutaProtegida>
+              <DetalleLibro />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/prestamos"
+          element={
+            <RutaProtegida>
+              <MisPrestamos />
+            </RutaProtegida>
+          }
+        />
 
-        {/* ADMIN PROTEGIDO */}
-        <Route element={<RutaProtegida requiredRole="ADMIN" />}>
-          <Route path="/admin" element={<AdminDashboard />} />
-          <Route path="/admin/categorias" element={<AdminCategorias />} />
-          <Route path="/admin/libros" element={<AdminLibros />} />
-          <Route path="/admin/usuarios" element={<AdminUsuarios />} />
-          <Route path="/admin/prestamos" element={<AdminPrestamos />} />
-          <Route path="/admin/carga-masiva" element={<AdminCargaMasiva />} />
-        </Route>
+        {/* ===== ADMIN (requiere login + rol ADMIN) ===== */}
+        <Route
+          path="/admin"
+          element={
+            <RutaProtegida adminOnly>
+              <AdminDashboard />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/admin/categorias"
+          element={
+            <RutaProtegida adminOnly>
+              <AdminCategorias />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/admin/libros"
+          element={
+            <RutaProtegida adminOnly>
+              <AdminLibros />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/admin/usuarios"
+          element={
+            <RutaProtegida adminOnly>
+              <AdminUsuarios />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/admin/prestamos"
+          element={
+            <RutaProtegida adminOnly>
+              <AdminPrestamos />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/admin/carga-masiva"
+          element={
+            <RutaProtegida adminOnly>
+              <AdminCargaMasiva />
+            </RutaProtegida>
+          }
+        />
 
-        {/* FALLBACK */}
+        {/* ===== FALLBACK ===== */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>
