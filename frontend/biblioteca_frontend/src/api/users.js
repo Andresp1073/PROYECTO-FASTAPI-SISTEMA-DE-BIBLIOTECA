@@ -6,15 +6,18 @@ export async function getUsers() {
   return data;
 }
 
-export async function actualizarUser(id, payload) {
+export async function getUserById(id) {
+  const { data } = await http.get(`/users/${id}`);
+  return data;
+}
+
+export async function updateUser(id, payload) {
   const { data } = await http.put(`/users/${id}`, payload);
   return data;
 }
 
-// Reset password: Swagger exige { new_password: "..." }
-export async function resetPasswordUser(id, newPassword) {
-  const { data } = await http.post(`/users/${id}/reset-password`, {
-    new_password: newPassword,
-  });
+// Según tu swagger: POST /users/{user_id}/reset-password
+export async function adminResetPassword(userId, payload) {
+  const { data } = await http.post(`/users/${userId}/reset-password`, payload);
   return data;
 }

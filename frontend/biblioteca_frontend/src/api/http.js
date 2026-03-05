@@ -6,13 +6,11 @@ export const raw = axios.create({
   withCredentials: true,
 });
 
-// Cliente principal (con interceptores)
 const http = axios.create({
   baseURL: "http://127.0.0.1:8000",
   withCredentials: true,
 });
 
-// Inyección del token desde AuthContext (setter)
 let getAccessToken = () => null;
 let onLogout = () => {};
 
@@ -30,44 +28,37 @@ http.interceptors.request.use((config) => {
   return config;
 });
 
-// Control anti-loop
 let isRefreshing = false;
-let pendingQueue = [];
+let queue = [];
 
-function resolveQueue(error, token) {
-  pendingQueue.forEach(({ resolve, reject }) => {
+function flushQueue(error, token) {
+  queue.forEach(({ resolve, reject }) => {
     if (error) reject(error);
     else resolve(token);
   });
-  pendingQueue = [];
+  queue = [];
 }
 
 http.interceptors.response.use(
   (res) => res,
   async (error) => {
     const original = error?.config;
-
-    // No repetir si no hay config o ya reintentamos
-    if (!original || original._retry) {
-      return Promise.reject(error);
-    }
-
     const status = error?.response?.status;
 
-    // Si es 401, intentamos refresh
-    if (status === 401) {
-      original._retry = true;
+    if (!original || original._retry) return Promise.reject(error);
 
-      // Si el request era refresh, no reintentar
+    if (status === 401) {
+      // si el mismo refresh falló, logout y ya
       if (String(original.url || "").includes("/auth/refresh")) {
         onLogout();
         return Promise.reject(error);
       }
 
+      original._retry = true;
+
       if (isRefreshing) {
-        // Encolar hasta que refresh termine
         return new Promise((resolve, reject) => {
-          pendingQueue.push({
+          queue.push({
             resolve: (token) => {
               original.headers = original.headers || {};
               original.headers.Authorization = `Bearer ${token}`;
@@ -81,21 +72,18 @@ http.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        // ✅ Refresh SIN interceptores
         const r = await raw.post("/auth/refresh");
-        const newToken = r?.data?.access_token || r?.data?.accessToken || null;
+        const newToken = r?.data?.access_token || null;
 
-        if (!newToken) throw new Error("Refresh no devolvió access_token");
+        if (!newToken) throw new Error("Refresh sin access_token");
 
-        resolveQueue(null, newToken);
+        flushQueue(null, newToken);
 
-        // Reintenta original
         original.headers = original.headers || {};
         original.headers.Authorization = `Bearer ${newToken}`;
-
         return http(original);
       } catch (e) {
-        resolveQueue(e, null);
+        flushQueue(e, null);
         onLogout();
         return Promise.reject(e);
       } finally {

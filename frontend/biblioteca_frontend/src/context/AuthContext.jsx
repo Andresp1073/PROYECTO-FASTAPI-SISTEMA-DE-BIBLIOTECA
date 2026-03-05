@@ -7,16 +7,14 @@ const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
   const [accessToken, setAccessToken] = useState(null);
-  const [user, setUser] = useState(null); // { id, nombre, email, rol }
   const [authReady, setAuthReady] = useState(false);
 
+  // por ahora no inferimos rol (se retoma luego con solución backend-friendly)
+  const user = null;
   const isAuthenticated = Boolean(accessToken);
-  const isAdmin = user?.rol === "ADMIN";
+  const isAdmin = false;
 
-  const clearAuth = () => {
-    setAccessToken(null);
-    setUser(null);
-  };
+  const clearAuth = () => setAccessToken(null);
 
   const logout = async () => {
     try {
@@ -25,40 +23,32 @@ export function AuthProvider({ children }) {
       // ignore
     } finally {
       clearAuth();
-      // si estás en una ruta protegida, luego te mandará a /login
     }
   };
 
-  // ✅ Conectar axios -> contexto
   useEffect(() => {
     configureAuth({
       tokenGetter: () => accessToken,
-      logoutHandler: () => {
-        // logout sin await (evita loops)
-        clearAuth();
-      },
+      logoutHandler: () => clearAuth(),
     });
   }, [accessToken]);
 
-  // ✅ Init: intentar refresh una sola vez (sin interceptores)
+  // init: intentar refresh una vez, pero 401 es normal si no hay cookie
   useEffect(() => {
     const init = async () => {
       try {
         const r = await raw.post("/auth/refresh");
-        const token = r?.data?.access_token || r?.data?.accessToken || null;
+        const token = r?.data?.access_token || null;
         if (token) setAccessToken(token);
-
-        const u = r?.data?.user || r?.data?.usuario || null;
-        if (u) setUser(u);
-      } catch (_) {
-        clearAuth();
+      } catch (err) {
+        // ✅ Si es 401, NO es error grave: solo no hay sesión previa
+        // No hacemos nada.
       } finally {
         setAuthReady(true);
       }
     };
 
     init();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const value = useMemo(
@@ -66,14 +56,13 @@ export function AuthProvider({ children }) {
       accessToken,
       setAccessToken,
       user,
-      setUser,
       isAuthenticated,
       isAdmin,
       authReady,
       clearAuth,
       logout,
     }),
-    [accessToken, user, authReady, isAuthenticated, isAdmin]
+    [accessToken, authReady, isAuthenticated]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -86,7 +75,6 @@ export function useAuth() {
       accessToken: null,
       setAccessToken: () => {},
       user: null,
-      setUser: () => {},
       isAuthenticated: false,
       isAdmin: false,
       authReady: true,

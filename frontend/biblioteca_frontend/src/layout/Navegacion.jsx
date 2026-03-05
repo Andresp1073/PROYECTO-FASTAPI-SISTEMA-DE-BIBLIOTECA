@@ -4,9 +4,9 @@ import { useAuth } from "../context/AuthContext.jsx";
 
 export default function Navegacion() {
   const navigate = useNavigate();
-  const { isAuthenticated, isAdmin, logout, user } = useAuth();
+  const { isAuthenticated, logout } = useAuth();
 
-  const cerrarSesion = async () => {
+  const salir = async () => {
     await logout();
     navigate("/login");
   };
@@ -20,7 +20,6 @@ export default function Navegacion() {
         </Link>
 
         <div className="d-flex gap-2 flex-wrap">
-          {/* ✅ Si NO está logueado: solo Login/Register */}
           {!isAuthenticated && (
             <>
               <NavLink className="btn btn-sm btn-outline-light" to="/login">
@@ -33,7 +32,6 @@ export default function Navegacion() {
             </>
           )}
 
-          {/* ✅ Si está logueado: menú de usuario */}
           {isAuthenticated && (
             <>
               <NavLink className="btn btn-sm btn-outline-light" to="/categorias">
@@ -48,19 +46,7 @@ export default function Navegacion() {
                 <i className="bi bi-journal-check me-1"></i> Mis Préstamos
               </NavLink>
 
-              {/* ✅ Admin SOLO si es ADMIN */}
-              {isAdmin && (
-                <NavLink className="btn btn-sm btn-outline-warning" to="/admin">
-                  <i className="bi bi-shield-lock me-1"></i> Admin
-                </NavLink>
-              )}
-
-              <span className="btn btn-sm btn-outline-secondary disabled">
-                <i className="bi bi-person-circle me-1"></i>
-                {user?.nombre || user?.email || "Usuario"}
-              </span>
-
-              <button className="btn btn-sm btn-danger" onClick={cerrarSesion}>
+              <button className="btn btn-sm btn-danger" onClick={salir}>
                 <i className="bi bi-box-arrow-right me-1"></i> Salir
               </button>
             </>

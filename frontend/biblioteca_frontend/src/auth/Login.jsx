@@ -22,7 +22,7 @@ function parseFastApiError(err) {
 
 export default function Login() {
   const navigate = useNavigate();
-  const { setAccessToken, setUser } = useAuth();
+  const { setAccessToken } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -37,35 +37,15 @@ export default function Login() {
 
     try {
       const data = await apiLogin({ email, password });
-
-      const token =
-        data?.access_token || data?.accessToken || data?.token || null;
+      const token = data?.access_token || null;
 
       if (!token) {
-        setError("El backend no retornó access_token. Revisa respuesta de /auth/login.");
+        setError("El backend no retornó access_token en /auth/login.");
         return;
       }
 
       setAccessToken(token);
-
-      // ✅ user puede venir como user/usuario o directamente campos
-      const u =
-        data?.user ||
-        data?.usuario ||
-        (data?.rol || data?.email || data?.nombre
-          ? {
-              id: data?.id,
-              nombre: data?.nombre,
-              email: data?.email,
-              rol: data?.rol,
-            }
-          : null);
-
-      if (u) setUser(u);
-
-      // si es admin, lo mandamos a /admin, si no, a /libros
-      if ((u?.rol || "").toUpperCase() === "ADMIN") navigate("/admin");
-      else navigate("/libros");
+      navigate("/libros");
     } catch (err) {
       setError(parseFastApiError(err));
     } finally {
