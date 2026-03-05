@@ -1,116 +1,98 @@
 // [MODIFICADO]
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import { forgotPassword as apiForgotPassword } from "../api/auth.js";
-import Alerta from "../components/Alerta.jsx";
-
-function parseFastApiError(err) {
-  const data = err?.response?.data;
-
-  if (Array.isArray(data?.detail)) {
-    return data.detail
-      .map((e) => {
-        const loc = Array.isArray(e.loc) ? e.loc.join(".") : "body";
-        return `${loc}: ${e.msg}`;
-      })
-      .join(" | ");
-  }
-
-  return (
-    data?.detail ||
-    data?.message ||
-    `Error ${err?.response?.status || ""}`.trim() ||
-    "No se pudo procesar la solicitud."
-  );
-}
+import { requestResetPassword } from "../api/auth.js";
 
 export default function ForgotPassword() {
-  const [email, setEmail] = useState("");
-  const [cargando, setCargando] = useState(false);
-  const [error, setError] = useState("");
-  const [ok, setOk] = useState("");
 
-  const onSubmit = async (e) => {
+  const [email,setEmail] = useState("");
+  const [mensaje,setMensaje] = useState("");
+  const [error,setError] = useState("");
+  const [cargando,setCargando] = useState(false);
+
+  const enviar = async(e)=>{
     e.preventDefault();
+
     setError("");
-    setOk("");
-
-    if (!email.trim()) {
-      setError("El email es obligatorio.");
-      return;
-    }
-
+    setMensaje("");
     setCargando(true);
-    try {
-      await apiForgotPassword({ email });
 
-      // Mensaje genérico por seguridad (no revelar si existe o no)
-      setOk(
-        "Si el correo existe, te llegará un email con instrucciones para restablecer tu contraseña."
-      );
-      setEmail("");
-    } catch (err) {
-      setError(parseFastApiError(err));
-    } finally {
+    try{
+
+      await requestResetPassword({email});
+
+      setMensaje("Si el correo existe, recibirás un email para resetear tu contraseña.");
+
+    }catch(err){
+
+      const msg =
+        err?.response?.data?.detail ||
+        err?.response?.data?.message ||
+        "Error al enviar solicitud";
+
+      setError(msg);
+
+    }finally{
       setCargando(false);
     }
-  };
 
-  return (
-    <div className="row justify-content-center">
-      <div className="col-12 col-md-9 col-lg-6">
-        <div className="p-4 border rounded-3 bg-body-tertiary">
-          <h1 className="h4 mb-3">
-            <i className="bi bi-key me-2"></i>
-            Forgot Password
-          </h1>
+  }
 
-          <Alerta mensaje={error} />
-          <Alerta type="success" mensaje={ok} />
+  return(
+    <div className="container py-4">
 
-          <form onSubmit={onSubmit}>
-            <div className="mb-3">
-              <label className="form-label">Email</label>
-              <input
-                type="email"
-                className="form-control"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="correo@ejemplo.com"
-                autoComplete="email"
-              />
-              <div className="form-text text-secondary">
-                Te enviaremos un enlace para restablecer tu contraseña.
+      <div className="row justify-content-center">
+
+        <div className="col-md-6 col-lg-5">
+
+          <div className="p-4 border rounded bg-body-tertiary">
+
+            <h4 className="mb-3">
+              Recuperar contraseña
+            </h4>
+
+            {mensaje && (
+              <div className="alert alert-success">
+                {mensaje}
               </div>
-            </div>
+            )}
 
-            <button
-              type="submit"
-              className="btn btn-light w-100"
-              disabled={cargando}
-            >
-              {cargando ? (
-                <>
-                  <span
-                    className="spinner-border spinner-border-sm me-2"
-                    role="status"
-                    aria-hidden="true"
-                  ></span>
-                  Enviando...
-                </>
-              ) : (
-                "Enviar enlace"
-              )}
-            </button>
-          </form>
+            {error && (
+              <div className="alert alert-danger">
+                {error}
+              </div>
+            )}
 
-          <div className="mt-3 text-center">
-            <Link to="/login" className="link-secondary">
-              Volver a Login
-            </Link>
+            <form onSubmit={enviar}>
+
+              <div className="mb-3">
+                <label className="form-label">
+                  Email
+                </label>
+
+                <input
+                  className="form-control"
+                  type="email"
+                  value={email}
+                  onChange={(e)=>setEmail(e.target.value)}
+                  required
+                />
+              </div>
+
+              <button
+                className="btn btn-light w-100"
+                disabled={cargando}
+              >
+                {cargando ? "Enviando..." : "Enviar enlace"}
+              </button>
+
+            </form>
+
           </div>
+
         </div>
+
       </div>
+
     </div>
   );
 }

@@ -1,59 +1,89 @@
-// [MODIFICADO]
+import React from "react";
 import { Link, NavLink, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 
 export default function Navegacion() {
+  const { isAuthenticated, user, logout } = useAuth();
   const navigate = useNavigate();
-  const { isAuthenticated, logout } = useAuth();
 
-  const salir = async () => {
-    await logout();
-    navigate("/login");
+  // Mantienes tu regla: navbar oculta si NO estás logueado
+  if (!isAuthenticated) return null;
+
+  const esAdmin = user?.rol === "ADMIN";
+
+  const onLogout = async () => {
+    try {
+      await logout(); // tu logout debería llamar /auth/logout y limpiar memoria
+    } finally {
+      navigate("/login", { replace: true });
+    }
   };
 
-  const linkClass = ({ isActive }) =>
-    `btn btn-sm ${isActive ? "btn-light" : "btn-outline-light"}`;
-
   return (
-    <nav className="navbar navbar-expand-lg border-bottom bg-body-tertiary">
+    <nav className="navbar navbar-expand-lg bg-body-tertiary border-bottom">
       <div className="container">
-        <Link className="navbar-brand fw-semibold" to="/">
-          <i className="bi bi-book me-2"></i>
-          Biblioteca Web
+        <Link className="navbar-brand" to="/">
+          Biblioteca
         </Link>
 
-        <div className="d-flex gap-2 flex-wrap">
-          {!isAuthenticated && (
-            <>
-              <NavLink className={linkClass} to="/login">
-                <i className="bi bi-box-arrow-in-right me-1"></i> Login
-              </NavLink>
+        <button
+          className="navbar-toggler"
+          type="button"
+          data-bs-toggle="collapse"
+          data-bs-target="#nav"
+          aria-controls="nav"
+          aria-expanded="false"
+          aria-label="Toggle navigation"
+        >
+          <span className="navbar-toggler-icon" />
+        </button>
 
-              <NavLink className="btn btn-sm btn-light" to="/register">
-                <i className="bi bi-person-plus me-1"></i> Register
+        <div className="collapse navbar-collapse" id="nav">
+          <ul className="navbar-nav me-auto mb-2 mb-lg-0">
+            <li className="nav-item">
+              <NavLink className="nav-link" to="/">
+                Home
               </NavLink>
-            </>
-          )}
+            </li>
 
-          {isAuthenticated && (
-            <>
-              <NavLink className={linkClass} to="/categorias">
-                <i className="bi bi-tags me-1"></i> Categorías
+            <li className="nav-item">
+              <NavLink className="nav-link" to="/categorias">
+                Categorías
               </NavLink>
+            </li>
 
-              <NavLink className={linkClass} to="/libros">
-                <i className="bi bi-journals me-1"></i> Libros
+            <li className="nav-item">
+              <NavLink className="nav-link" to="/libros">
+                Libros
               </NavLink>
+            </li>
 
-              <NavLink className={linkClass} to="/prestamos">
-                <i className="bi bi-journal-check me-1"></i> Mis Préstamos
+            <li className="nav-item">
+              <NavLink className="nav-link" to="/prestamos/mis-prestamos">
+                Mis Préstamos
               </NavLink>
+            </li>
 
-              <button className="btn btn-sm btn-danger" onClick={salir}>
-                <i className="bi bi-box-arrow-right me-1"></i> Salir
-              </button>
-            </>
-          )}
+            {esAdmin && (
+              <li className="nav-item">
+                <NavLink className="nav-link" to="/admin">
+                  Admin
+                </NavLink>
+              </li>
+            )}
+          </ul>
+
+          <div className="d-flex align-items-center gap-3">
+            <div className="small text-body-secondary">
+              {user?.nombre ? user.nombre : "Usuario"}{" "}
+              {user?.rol ? `(${user.rol})` : ""}
+            </div>
+
+            <button className="btn btn-outline-danger btn-sm" onClick={onLogout}>
+              <i className="bi bi-box-arrow-right me-1" />
+              Salir
+            </button>
+          </div>
         </div>
       </div>
     </nav>

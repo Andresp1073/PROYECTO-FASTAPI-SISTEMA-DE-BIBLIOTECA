@@ -1,25 +1,21 @@
-// [MODIFICADO]
+// src/admin/AdminLibros.jsx
 import { useEffect, useMemo, useState } from "react";
-import http from "../api/http.js";
+import { getLibros, crearLibro, actualizarLibro, eliminarLibro } from "../api/libros.js";
 import { getCategorias } from "../api/categorias.js";
-import { getLibros } from "../api/libros.js";
 import { uploadCover } from "../api/uploads.js";
-import Spinner from "../components/Spinner.jsx";
 import Alerta from "../components/Alerta.jsx";
+import Spinner from "../components/Spinner.jsx";
+
+const API_BASE = "http://127.0.0.1:8000";
 
 function parseFastApiError(err) {
   const data = err?.response?.data;
-
   if (Array.isArray(data?.detail)) {
     return data.detail
-      .map((e) => {
-        const loc = Array.isArray(e.loc) ? e.loc.join(".") : "body";
-        return `${loc}: ${e.msg}`;
-      })
+      .map((e) => `${Array.isArray(e.loc) ? e.loc.join(".") : "body"}: ${e.msg}`)
       .join(" | ");
   }
-
-  return data?.detail || data?.message || "Error inesperado";
+  return data?.detail || data?.message || `Error ${err?.response?.status || ""}`.trim() || "Ocurrió un error.";
 }
 
 function normalizarListado(data) {
@@ -28,44 +24,55 @@ function normalizarListado(data) {
   return [];
 }
 
+function resolveCoverUrl(coverUrl) {
+  if (!coverUrl) return "";
+  const s = String(coverUrl).trim();
+  if (!s) return "";
+  if (s.startsWith("http://") || s.startsWith("https://")) return s;
+  if (s.startsWith("/")) return `${API_BASE}${s}`;
+  return `${API_BASE}/${s}`;
+}
+
 export default function AdminLibros() {
-  const [items, setItems] = useState([]);
-  const [categorias, setCategorias] = useState([]);
-
-  const [titulo, setTitulo] = useState("");
-  const [autor, setAutor] = useState("");
-  const [isbn, setIsbn] = useState("");
-  const [resumen, setResumen] = useState("");
-
-  const [categoriaId, setCategoriaId] = useState("");
-  const [estado, setEstado] = useState("DISPONIBLE");
-
-  // Cover
-  const [coverUrl, setCoverUrl] = useState("");
-  const [coverFile, setCoverFile] = useState(null);
-  const [coverPreview, setCoverPreview] = useState("");
-  const [subiendoCover, setSubiendoCover] = useState(false);
-
-  const [editandoId, setEditandoId] = useState(null);
-
   const [cargando, setCargando] = useState(true);
+  const [items, setItems] = useState([]);
+  const [cats, setCats] = useState([]);
   const [error, setError] = useState("");
   const [ok, setOk] = useState("");
 
-  const categoriaNombrePorId = useMemo(() => {
-    const map = new Map();
-    categorias.forEach((c) => map.set(String(c.id), c.nombre));
-    return map;
-  }, [categorias]);
+  const [q, setQ] = useState("");
+
+  // Crear
+  const [form, setForm] = useState({
+    titulo: "",
+    autor: "",
+    isbn: "",
+    categoria_id: "",
+    resumen: "",
+    cover_url: "",
+    estado: "DISPONIBLE",
+  });
+  const [uploadingCover, setUploadingCover] = useState(false);
+
+  // Editar
+  const [edit, setEdit] = useState(null);
+  const [uploadingEditCover, setUploadingEditCover] = useState(false);
+  const [savingEdit, setSavingEdit] = useState(false);
+
+  const catNombrePorId = useMemo(() => {
+    const m = new Map();
+    cats.forEach((c) => m.set(String(c.id), c.nombre));
+    return m;
+  }, [cats]);
 
   const cargar = async () => {
+    setCargando(true);
     setError("");
     setOk("");
-    setCargando(true);
     try {
-      const [libros, cats] = await Promise.all([getLibros(), getCategorias()]);
-      setItems(normalizarListado(libros));
-      setCategorias(normalizarListado(cats));
+      const [librosData, catsData] = await Promise.all([getLibros(), getCategorias()]);
+      setItems(normalizarListado(librosData));
+      setCats(normalizarListado(catsData));
     } catch (err) {
       setError(parseFastApiError(err));
     } finally {
@@ -77,425 +84,504 @@ export default function AdminLibros() {
     cargar();
   }, []);
 
-  // Preview local al seleccionar archivo
-  useEffect(() => {
-    if (!coverFile) {
-      setCoverPreview("");
-      return;
-    }
-    const url = URL.createObjectURL(coverFile);
-    setCoverPreview(url);
-    return () => URL.revokeObjectURL(url);
-  }, [coverFile]);
+  const filtrados = useMemo(() => {
+    const term = q.trim().toLowerCase();
+    if (!term) return items;
+    return items.filter((b) => {
+      const t = String(b.titulo ?? "").toLowerCase();
+      const a = String(b.autor ?? "").toLowerCase();
+      const i = String(b.isbn ?? "").toLowerCase();
+      return t.includes(term) || a.includes(term) || i.includes(term);
+    });
+  }, [items, q]);
 
-  const limpiar = () => {
-    setTitulo("");
-    setAutor("");
-    setIsbn("");
-    setResumen("");
-    setCategoriaId("");
-    setEstado("DISPONIBLE");
+  const onChangeForm = (k, v) => setForm((prev) => ({ ...prev, [k]: v }));
 
-    setCoverUrl("");
-    setCoverFile(null);
-    setCoverPreview("");
-
-    setEditandoId(null);
-  };
-
-  const validar = () => {
-    if (!titulo.trim()) return "El título es obligatorio.";
-    if (!autor.trim()) return "El autor es obligatorio.";
-    if (!categoriaId) return "Selecciona una categoría.";
-    return "";
-  };
-
-  const construirPayload = () => {
-    return {
-      titulo: titulo.trim(),
-      autor: autor.trim(),
-      isbn: isbn.trim() ? isbn.trim() : null,
-      resumen: resumen.trim() ? resumen.trim() : null,
-      cover_url: coverUrl.trim() ? coverUrl.trim() : null,
-      categoria_id: Number(categoriaId),
-      estado: estado || "DISPONIBLE",
-    };
-  };
-
-  const onSubirCover = async () => {
+  // ===== Upload portada (Crear) =====
+  const subirCoverCrear = async (file) => {
     setError("");
     setOk("");
-
-    if (!coverFile) {
-      setError("Selecciona una imagen primero.");
-      return;
-    }
-
-    setSubiendoCover(true);
     try {
-      const url = await uploadCover(coverFile);
-
+      setUploadingCover(true);
+      const data = await uploadCover(file);
+      const url = data?.url || data?.path || data?.cover_url || data?.ruta || "";
       if (!url) {
-        setError("El backend no devolvió una URL de portada.");
+        setError("El backend no devolvió la URL de la portada (url/path/cover_url).");
         return;
       }
-
-      setCoverUrl(url);
-      setOk("Portada subida correctamente.");
+      setForm((prev) => ({ ...prev, cover_url: url }));
+      setOk("Portada subida ✅");
     } catch (err) {
       setError(parseFastApiError(err));
     } finally {
-      setSubiendoCover(false);
+      setUploadingCover(false);
     }
   };
 
-  const crear = async (e) => {
+  // ===== Upload portada (Editar) =====
+  const subirCoverEditar = async (file) => {
+    setError("");
+    setOk("");
+    try {
+      setUploadingEditCover(true);
+      const data = await uploadCover(file);
+      const url = data?.url || data?.path || data?.cover_url || data?.ruta || "";
+      if (!url) {
+        setError("El backend no devolvió la URL de la portada (url/path/cover_url).");
+        return;
+      }
+      setEdit((prev) => ({ ...prev, cover_url: url }));
+      setOk("Portada subida ✅");
+    } catch (err) {
+      setError(parseFastApiError(err));
+    } finally {
+      setUploadingEditCover(false);
+    }
+  };
+
+  const onCrear = async (e) => {
     e.preventDefault();
     setError("");
     setOk("");
-
-    const v = validar();
-    if (v) {
-      setError(v);
-      return;
-    }
-
     try {
-      await http.post("/libros/", construirPayload());
-      setOk("Libro creado.");
-      limpiar();
-      await cargar();
+      const payload = {
+        titulo: form.titulo.trim(),
+        autor: form.autor.trim(),
+        isbn: form.isbn.trim(),
+        categoria_id: form.categoria_id ? Number(form.categoria_id) : null,
+        resumen: form.resumen?.trim() || null,
+        cover_url: form.cover_url?.trim() || null,
+        estado: form.estado || "DISPONIBLE",
+      };
+
+      if (!payload.titulo) return setError("El título es obligatorio.");
+      if (!payload.autor) return setError("El autor es obligatorio.");
+      if (!payload.isbn) return setError("El ISBN es obligatorio.");
+      if (!payload.categoria_id) return setError("La categoría es obligatoria.");
+
+      await crearLibro(payload);
+
+      setForm({
+        titulo: "",
+        autor: "",
+        isbn: "",
+        categoria_id: "",
+        resumen: "",
+        cover_url: "",
+        estado: "DISPONIBLE",
+      });
+
+      setOk("Libro creado ✅");
+      cargar();
     } catch (err) {
       setError(parseFastApiError(err));
     }
   };
 
-  const actualizar = async (e) => {
-    e.preventDefault();
+  const abrirEditar = (b) => {
     setError("");
     setOk("");
-
-    const v = validar();
-    if (v) {
-      setError(v);
-      return;
-    }
-
-    try {
-      await http.put(`/libros/${editandoId}`, construirPayload());
-      setOk("Libro actualizado.");
-      limpiar();
-      await cargar();
-    } catch (err) {
-      setError(parseFastApiError(err));
-    }
+    setEdit({
+      id: b.id,
+      titulo: b.titulo ?? "",
+      autor: b.autor ?? "",
+      isbn: b.isbn ?? "",
+      categoria_id: b.categoria_id ?? b.categoria?.id ?? "",
+      resumen: b.resumen ?? "",
+      cover_url: b.cover_url ?? "",
+      estado: b.estado ?? "DISPONIBLE",
+    });
   };
 
-  const eliminar = async (id) => {
+  const cerrarEditar = () => {
+    setEdit(null);
+    setSavingEdit(false);
+    setUploadingEditCover(false);
+  };
+
+  const guardarEdicion = async () => {
     setError("");
     setOk("");
-    if (!window.confirm("¿Eliminar libro?")) return;
+    setSavingEdit(true);
 
     try {
-      await http.delete(`/libros/${id}`);
-      setOk("Libro eliminado.");
-      await cargar();
+      const payload = {
+        titulo: String(edit.titulo).trim(),
+        autor: String(edit.autor).trim(),
+        isbn: String(edit.isbn).trim(),
+        categoria_id: edit.categoria_id ? Number(edit.categoria_id) : null,
+        resumen: edit.resumen?.trim() || null,
+        cover_url: edit.cover_url?.trim() || null,
+        estado: edit.estado || "DISPONIBLE",
+      };
+
+      if (!payload.titulo) return setError("El título es obligatorio.");
+      if (!payload.autor) return setError("El autor es obligatorio.");
+      if (!payload.isbn) return setError("El ISBN es obligatorio.");
+      if (!payload.categoria_id) return setError("La categoría es obligatoria.");
+
+      await actualizarLibro(edit.id, payload);
+
+      setOk("Libro actualizado ✅");
+      cerrarEditar();
+      cargar();
+    } catch (err) {
+      setError(parseFastApiError(err));
+    } finally {
+      setSavingEdit(false);
+    }
+  };
+
+  const borrar = async (id) => {
+    setError("");
+    setOk("");
+    const okConfirm = window.confirm(`¿Eliminar el libro #${id}?`);
+    if (!okConfirm) return;
+
+    try {
+      await eliminarLibro(id);
+      setOk("Libro eliminado ✅");
+      cargar();
     } catch (err) {
       setError(parseFastApiError(err));
     }
   };
 
-  const editar = (lib) => {
-    setEditandoId(lib.id);
-
-    setTitulo(lib.titulo ?? "");
-    setAutor(lib.autor ?? "");
-    setIsbn(lib.isbn ?? "");
-    setResumen(lib.resumen ?? "");
-
-    setCoverUrl(lib.cover_url ?? "");
-    setCoverFile(null);
-    setCoverPreview("");
-
-    setCategoriaId(
-      lib.categoria_id !== undefined && lib.categoria_id !== null
-        ? String(lib.categoria_id)
-        : ""
-    );
-    setEstado(lib.estado ?? "DISPONIBLE");
+  const catName = (b) => {
+    const cid = b.categoria_id ?? b.categoria?.id;
+    if (cid == null) return "—";
+    return catNombrePorId.get(String(cid)) || `ID ${cid}`;
   };
+
+  const previewCrear = resolveCoverUrl(form.cover_url);
+  const previewEditar = resolveCoverUrl(edit?.cover_url);
 
   return (
-    <div className="row g-4">
-      <div className="col-12 col-lg-4">
-        <div className="p-4 border rounded-3 bg-body-tertiary">
-          <h1 className="h5 mb-3">
-            <i className="bi bi-book-half me-2"></i>
-            {editandoId ? "Editar libro" : "Nuevo libro"}
-          </h1>
+    <div className="container py-4">
+      <div className="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+        <h3 className="m-0">
+          <i className="bi bi-book me-2" />
+          Admin Libros
+        </h3>
 
-          <Alerta mensaje={error} />
-          <Alerta type="success" mensaje={ok} />
+        <div className="d-flex gap-2">
+          <input
+            className="form-control"
+            style={{ maxWidth: 320 }}
+            placeholder="Buscar por título/autor/ISBN…"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
+          <button className="btn btn-outline-light" onClick={cargar} disabled={cargando}>
+            <i className="bi bi-arrow-clockwise me-2" />
+            Recargar
+          </button>
+        </div>
+      </div>
 
-          <form onSubmit={editandoId ? actualizar : crear}>
-            <div className="mb-3">
+      <Alerta mensaje={error} />
+      <Alerta type="success" mensaje={ok} />
+
+      <div className="row g-3">
+        {/* Crear */}
+        <div className="col-12 col-xl-4">
+          <div className="p-4 border rounded-3 bg-body-tertiary">
+            <div className="h5 mb-3">Crear libro</div>
+
+            <form onSubmit={onCrear}>
               <label className="form-label">Título</label>
-              <input
-                className="form-control"
-                value={titulo}
-                onChange={(e) => setTitulo(e.target.value)}
-                placeholder="Ej: Clean Code"
-              />
-            </div>
+              <input className="form-control" value={form.titulo} onChange={(e) => onChangeForm("titulo", e.target.value)} />
 
-            <div className="mb-3">
-              <label className="form-label">Autor</label>
-              <input
-                className="form-control"
-                value={autor}
-                onChange={(e) => setAutor(e.target.value)}
-                placeholder="Ej: Robert C. Martin"
-              />
-            </div>
+              <label className="form-label mt-2">Autor</label>
+              <input className="form-control" value={form.autor} onChange={(e) => onChangeForm("autor", e.target.value)} />
 
-            <div className="mb-3">
-              <label className="form-label">Categoría</label>
-              <select
-                className="form-select"
-                value={categoriaId}
-                onChange={(e) => setCategoriaId(e.target.value)}
-              >
-                <option value="">Seleccione</option>
-                {categorias.map((c) => (
+              <label className="form-label mt-2">ISBN</label>
+              <input className="form-control" value={form.isbn} onChange={(e) => onChangeForm("isbn", e.target.value)} />
+
+              <label className="form-label mt-2">Categoría</label>
+              <select className="form-select" value={form.categoria_id} onChange={(e) => onChangeForm("categoria_id", e.target.value)}>
+                <option value="">Selecciona...</option>
+                {cats.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.nombre}
                   </option>
                 ))}
               </select>
-            </div>
 
-            <div className="mb-3">
-              <label className="form-label">ISBN (opcional)</label>
-              <input
-                className="form-control"
-                value={isbn}
-                onChange={(e) => setIsbn(e.target.value)}
-                placeholder="Ej: 9780132350884"
-              />
-            </div>
+              <label className="form-label mt-2">Estado</label>
+              <select className="form-select" value={form.estado} onChange={(e) => onChangeForm("estado", e.target.value)}>
+                <option value="DISPONIBLE">DISPONIBLE</option>
+                <option value="PRESTADO">PRESTADO</option>
+              </select>
 
-            <div className="mb-3">
-              <label className="form-label">Resumen (opcional)</label>
-              <textarea
-                className="form-control"
-                rows={3}
-                value={resumen}
-                onChange={(e) => setResumen(e.target.value)}
-                placeholder="Ej: Buenas prácticas de código limpio"
-              />
-            </div>
-
-            {/* COVER UPLOAD */}
-            <div className="mb-3">
-              <label className="form-label">Portada (subir imagen)</label>
-
+              <label className="form-label mt-2">Portada (subir imagen)</label>
               <input
                 type="file"
                 className="form-control"
                 accept="image/*"
-                onChange={(e) => setCoverFile(e.target.files?.[0] || null)}
+                disabled={uploadingCover}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) subirCoverCrear(file);
+                }}
               />
 
-              {(coverPreview || coverUrl) && (
-                <div className="mt-2 d-flex align-items-center gap-3 flex-wrap">
-                  <div
-                    className="border rounded-3 overflow-hidden"
-                    style={{ width: 84, height: 120 }}
-                  >
-                    <img
-                      src={coverPreview || coverUrl}
-                      alt="Preview portada"
-                      style={{ width: "100%", height: "100%", objectFit: "cover" }}
-                    />
-                  </div>
+              {uploadingCover && (
+                <div className="small text-secondary mt-2">
+                  <i className="bi bi-cloud-upload me-2" />
+                  Subiendo portada...
+                </div>
+              )}
 
+              {form.cover_url && (
+                <div className="mt-2 d-flex align-items-start gap-3">
+                  <img
+                    src={previewCrear}
+                    alt="Portada"
+                    className="border rounded"
+                    style={{ width: 80, height: 110, objectFit: "cover" }}
+                    onError={() => setError(`No se pudo cargar preview. cover_url="${form.cover_url}"`)}
+                  />
                   <div className="small text-secondary">
-                    <div className="fw-semibold text-body">Preview</div>
-                    <div style={{ wordBreak: "break-all" }}>
-                      {coverUrl ? (
-                        <>
-                          URL guardada:
-                          <div>
-                            <code>{coverUrl}</code>
-                          </div>
-                        </>
-                      ) : (
-                        "Aún no has subido la imagen."
-                      )}
-                    </div>
+                    cover_url: <code>{String(form.cover_url)}</code>
                   </div>
                 </div>
               )}
 
-              <div className="mt-2 d-flex gap-2">
-                <button
-                  type="button"
-                  className="btn btn-sm btn-outline-light"
-                  onClick={onSubirCover}
-                  disabled={subiendoCover || !coverFile}
-                >
-                  {subiendoCover ? (
-                    <>
-                      <span
-                        className="spinner-border spinner-border-sm me-2"
-                        role="status"
-                        aria-hidden="true"
-                      ></span>
-                      Subiendo...
-                    </>
-                  ) : (
-                    <>
-                      <i className="bi bi-upload me-1"></i>
-                      Subir portada
-                    </>
-                  )}
-                </button>
+              <label className="form-label mt-2">Resumen (opcional)</label>
+              <textarea className="form-control" rows="3" value={form.resumen} onChange={(e) => onChangeForm("resumen", e.target.value)} />
 
-                <button
-                  type="button"
-                  className="btn btn-sm btn-outline-secondary"
-                  onClick={() => {
-                    setCoverFile(null);
-                    setCoverPreview("");
-                    setCoverUrl("");
-                  }}
-                >
-                  Limpiar portada
-                </button>
-              </div>
-
-              <div className="form-text text-secondary">
-                Se sube a <code>POST /uploads/covers</code> (ADMIN).
-              </div>
-            </div>
-
-            <div className="mb-3">
-              <label className="form-label">Estado</label>
-              <select
-                className="form-select"
-                value={estado}
-                onChange={(e) => setEstado(e.target.value)}
-              >
-                <option value="DISPONIBLE">DISPONIBLE</option>
-                <option value="PRESTADO">PRESTADO</option>
-                <option value="NO_DISPONIBLE">NO_DISPONIBLE</option>
-              </select>
-            </div>
-
-            <button className="btn btn-light w-100" type="submit">
-              {editandoId ? "Actualizar" : "Crear"}
-            </button>
-
-            {editandoId && (
-              <button
-                type="button"
-                className="btn btn-outline-light w-100 mt-2"
-                onClick={limpiar}
-              >
-                Cancelar
+              <button className="btn btn-light mt-3 w-100" type="submit" disabled={uploadingCover}>
+                <i className="bi bi-plus-circle me-2" />
+                Crear
               </button>
-            )}
-          </form>
+            </form>
 
-          <div className="mt-3 small text-secondary">
-            Crear libro: <code>POST /libros/</code> • Subir portada:{" "}
-            <code>POST /uploads/covers</code>
+            <div className="text-secondary small mt-3">
+              Endpoints: <code>GET /libros</code> — <code>POST /libros</code> —{" "}
+              <code>PUT /libros/{`{id}`}</code> — <code>DELETE /libros/{`{id}`}</code>
+              <br />
+              Upload: <code>POST /uploads/covers</code>
+            </div>
           </div>
         </div>
-      </div>
 
-      <div className="col-12 col-lg-8">
-        <div className="p-4 border rounded-3 bg-body-tertiary">
-          <div className="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
-            <h2 className="h5 mb-0">
-              <i className="bi bi-list-ul me-2"></i>
-              Lista de libros
-            </h2>
+        {/* Listado */}
+        <div className="col-12 col-xl-8">
+          <div className="p-4 border rounded-3 bg-body-tertiary">
+            <div className="h5 mb-3">Listado</div>
 
-            <button
-              className="btn btn-sm btn-outline-light"
-              onClick={cargar}
-              disabled={cargando}
-            >
-              <i className="bi bi-arrow-clockwise me-1"></i>
-              Recargar
-            </button>
-          </div>
+            {cargando ? (
+              <Spinner texto="Cargando..." />
+            ) : (
+              <div className="table-responsive">
+                <table className="table table-dark table-hover align-middle">
+                  <thead>
+                    <tr>
+                      <th style={{ width: 70 }}>ID</th>
+                      <th style={{ width: 90 }}>Cover</th>
+                      <th>Título</th>
+                      <th style={{ width: 180 }}>Autor</th>
+                      <th style={{ width: 160 }}>ISBN</th>
+                      <th style={{ width: 180 }}>Categoría</th>
+                      <th style={{ width: 120 }}>Estado</th>
+                      <th style={{ width: 200 }} className="text-end"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtrados.map((b) => {
+                      const cover = resolveCoverUrl(b.cover_url);
+                      return (
+                        <tr key={b.id}>
+                          <td className="text-secondary">{b.id}</td>
+                          <td>
+                            {cover ? (
+                              <img src={cover} alt="cover" className="border rounded" style={{ width: 46, height: 62, objectFit: "cover" }} />
+                            ) : (
+                              <span className="text-secondary small">—</span>
+                            )}
+                          </td>
+                          <td className="fw-semibold">{b.titulo}</td>
+                          <td className="text-secondary">{b.autor}</td>
+                          <td className="text-secondary">{b.isbn}</td>
+                          <td className="text-secondary">{catName(b)}</td>
+                          <td>
+                            <span className={`badge ${b.estado === "DISPONIBLE" ? "text-bg-success" : "text-bg-warning"}`}>
+                              {b.estado || "—"}
+                            </span>
+                          </td>
+                          <td className="text-end">
+                            <button className="btn btn-sm btn-outline-info me-2" onClick={() => abrirEditar(b)}>
+                              <i className="bi bi-pencil me-1" />
+                              Editar
+                            </button>
+                            <button className="btn btn-sm btn-outline-danger" onClick={() => borrar(b.id)}>
+                              <i className="bi bi-trash me-1" />
+                              Eliminar
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
 
-          {cargando ? (
-            <Spinner texto="Cargando libros..." />
-          ) : items.length === 0 ? (
-            <div className="text-secondary">No hay libros.</div>
-          ) : (
-            <div className="table-responsive">
-              <table className="table table-dark table-hover align-middle mb-0">
-                <thead>
-                  <tr>
-                    <th style={{ width: 70 }}>ID</th>
-                    <th>Título</th>
-                    <th>Autor</th>
-                    <th style={{ width: 160 }}>Categoría</th>
-                    <th style={{ width: 140 }}>Estado</th>
-                    <th style={{ width: 130 }}></th>
-                  </tr>
-                </thead>
-
-                <tbody>
-                  {items.map((lib) => {
-                    const cid =
-                      lib.categoria_id !== undefined && lib.categoria_id !== null
-                        ? String(lib.categoria_id)
-                        : "";
-                    const categoriaNombre = cid
-                      ? categoriaNombrePorId.get(cid) || "-"
-                      : "-";
-
-                    return (
-                      <tr key={lib.id}>
-                        <td className="text-secondary">{lib.id}</td>
-                        <td className="fw-semibold">{lib.titulo ?? "—"}</td>
-                        <td className="text-secondary">{lib.autor ?? "—"}</td>
-                        <td className="text-secondary">{categoriaNombre}</td>
-                        <td>
-                          <span className="badge text-bg-secondary">
-                            {lib.estado ?? "—"}
-                          </span>
-                        </td>
-                        <td className="text-end">
-                          <button
-                            className="btn btn-sm btn-outline-light me-2"
-                            onClick={() => editar(lib)}
-                            title="Editar"
-                          >
-                            <i className="bi bi-pencil"></i>
-                          </button>
-                          <button
-                            className="btn btn-sm btn-outline-danger"
-                            onClick={() => eliminar(lib.id)}
-                            title="Eliminar"
-                          >
-                            <i className="bi bi-trash"></i>
-                          </button>
+                    {filtrados.length === 0 && (
+                      <tr>
+                        <td colSpan="8" className="text-center text-secondary py-4">
+                          Sin libros
                         </td>
                       </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
         </div>
       </div>
+
+      {/* ===== MODAL EDITAR (FIX z-index) ===== */}
+      {edit && (
+        <>
+          {/* Backdrop primero (debajo del modal) */}
+          <div
+            className="modal-backdrop show"
+            style={{ zIndex: 1040 }}
+            onClick={cerrarEditar}
+          />
+
+          {/* Modal encima */}
+          <div
+            className="modal d-block"
+            tabIndex="-1"
+            role="dialog"
+            style={{ zIndex: 1050 }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modal-dialog modal-dialog-centered modal-lg" role="document">
+              <div className="modal-content bg-dark text-light border">
+                <div className="modal-header">
+                  <h5 className="modal-title">Editar libro #{edit.id}</h5>
+                  <button type="button" className="btn-close btn-close-white" onClick={cerrarEditar} />
+                </div>
+
+                <div className="modal-body">
+                  <div className="row g-2">
+                    <div className="col-12 col-md-6">
+                      <label className="form-label">Título</label>
+                      <input
+                        className="form-control"
+                        value={edit.titulo}
+                        onChange={(e) => setEdit((p) => ({ ...p, titulo: e.target.value }))}
+                      />
+                    </div>
+
+                    <div className="col-12 col-md-6">
+                      <label className="form-label">Autor</label>
+                      <input
+                        className="form-control"
+                        value={edit.autor}
+                        onChange={(e) => setEdit((p) => ({ ...p, autor: e.target.value }))}
+                      />
+                    </div>
+
+                    <div className="col-12 col-md-4">
+                      <label className="form-label">ISBN</label>
+                      <input
+                        className="form-control"
+                        value={edit.isbn}
+                        onChange={(e) => setEdit((p) => ({ ...p, isbn: e.target.value }))}
+                      />
+                    </div>
+
+                    <div className="col-12 col-md-4">
+                      <label className="form-label">Categoría</label>
+                      <select
+                        className="form-select"
+                        value={edit.categoria_id}
+                        onChange={(e) => setEdit((p) => ({ ...p, categoria_id: e.target.value }))}
+                      >
+                        <option value="">Selecciona...</option>
+                        {cats.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.nombre}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="col-12 col-md-4">
+                      <label className="form-label">Estado</label>
+                      <select
+                        className="form-select"
+                        value={edit.estado}
+                        onChange={(e) => setEdit((p) => ({ ...p, estado: e.target.value }))}
+                      >
+                        <option value="DISPONIBLE">DISPONIBLE</option>
+                        <option value="PRESTADO">PRESTADO</option>
+                      </select>
+                    </div>
+
+                    <div className="col-12">
+                      <label className="form-label">Portada (subir imagen)</label>
+                      <input
+                        type="file"
+                        className="form-control"
+                        accept="image/*"
+                        disabled={uploadingEditCover}
+                        onChange={(e) => {
+                          const file = e.target.files?.[0];
+                          if (file) subirCoverEditar(file);
+                        }}
+                      />
+
+                      {uploadingEditCover && (
+                        <div className="small text-secondary mt-2">
+                          <i className="bi bi-cloud-upload me-2" />
+                          Subiendo portada...
+                        </div>
+                      )}
+
+                      {edit.cover_url && (
+                        <div className="mt-2 d-flex align-items-start gap-3">
+                          <img
+                            src={previewEditar}
+                            alt="Portada"
+                            className="border rounded"
+                            style={{ width: 80, height: 110, objectFit: "cover" }}
+                            onError={() => setError(`No se pudo cargar preview. cover_url="${edit.cover_url}"`)}
+                          />
+                          <div className="small text-secondary">
+                            cover_url: <code>{String(edit.cover_url)}</code>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="col-12">
+                      <label className="form-label">Resumen (opcional)</label>
+                      <textarea
+                        className="form-control"
+                        rows="4"
+                        value={edit.resumen}
+                        onChange={(e) => setEdit((p) => ({ ...p, resumen: e.target.value }))}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <div className="modal-footer">
+                  <button className="btn btn-outline-light" onClick={cerrarEditar} disabled={savingEdit || uploadingEditCover}>
+                    Cancelar
+                  </button>
+                  <button className="btn btn-light" onClick={guardarEdicion} disabled={savingEdit || uploadingEditCover}>
+                    {savingEdit ? "Guardando..." : "Guardar"}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

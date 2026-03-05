@@ -1,30 +1,47 @@
-// [MODIFICADO]
-import { Navigate } from "react-router-dom";
+import React from "react";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
-import Spinner from "../components/Spinner.jsx";
 
-/**
- * Props:
- * - children
- * - adminOnly?: boolean
- */
-export default function RutaProtegida({ children, adminOnly = false }) {
-  const { authReady, isAuthenticated, isAdmin } = useAuth();
+export default function RutaProtegida({ requiredRole }) {
+  const { isAuthenticated, user, loading } = useAuth();
+  const location = useLocation();
 
-  // ✅ Esperar a que el auth termine de inicializar (refresh)
-  if (!authReady) {
-    return <Spinner texto="Verificando sesión..." />;
+  // 1) Mientras cargas /auth/me o estás restaurando sesión en memoria
+  if (loading) {
+    return (
+      <div className="container py-5">
+        <div className="d-flex align-items-center gap-3">
+          <div className="spinner-border" role="status" aria-label="Cargando" />
+          <div>Cargando...</div>
+        </div>
+      </div>
+    );
   }
 
-  // ✅ Si no hay sesión -> login
+  // 2) Si no hay sesión -> login
   if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
+    return <Navigate to="/login" replace state={{ from: location }} />;
   }
 
-  // ✅ Si es ruta admin y no es admin -> home
-  if (adminOnly && !isAdmin) {
-    return <Navigate to="/" replace />;
+  // 3) Si piden rol ADMIN y el usuario no lo es -> home
+  if (requiredRole) {
+    const rol = user?.rol;
+    if (!rol) {
+      // Usuario autenticado pero aún no llegó /auth/me (o falló). Evita crashear.
+      return (
+        <div className="container py-5">
+          <div className="alert alert-warning mb-0">
+            No se pudo cargar el rol del usuario. Intenta recargar.
+          </div>
+        </div>
+      );
+    }
+
+    if (rol !== requiredRole) {
+      return <Navigate to="/" replace />;
+    }
   }
 
-  return children;
+  // 4) Render normal
+  return <Outlet />;
 }

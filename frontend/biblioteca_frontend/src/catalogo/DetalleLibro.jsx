@@ -1,4 +1,4 @@
-// [MODIFICADO]
+// src/catalogo/DetalleLibro.jsx
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { getLibro } from "../api/libros.js";
@@ -35,7 +35,6 @@ function resolveCoverUrl(coverUrl) {
   if (!s) return "";
   if (s.startsWith("http://") || s.startsWith("https://")) return s;
 
-  // Asegura slash
   if (s.startsWith("/")) return `${API_BASE}${s}`;
   return `${API_BASE}/${s}`;
 }
@@ -60,13 +59,13 @@ export default function DetalleLibro() {
     setCargando(true);
 
     try {
-      const [dataLibro, dataCats] = await Promise.all([
+      const [libroData, catsData] = await Promise.all([
         getLibro(id),
         getCategorias(),
       ]);
 
-      setCategorias(normalizarListado(dataCats));
-      setLibro(dataLibro);
+      setCategorias(normalizarListado(catsData));
+      setLibro(libroData);
     } catch (err) {
       setError(parseFastApiError(err));
       setLibro(null);
@@ -77,7 +76,6 @@ export default function DetalleLibro() {
 
   useEffect(() => {
     cargar();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id]);
 
   const categoriaNombre = (() => {
@@ -144,12 +142,19 @@ export default function DetalleLibro() {
           <div className="p-4 border rounded-3 bg-body-tertiary">
             <div className="d-flex align-items-start justify-content-between gap-3 flex-wrap">
               <div>
-                <div className="text-secondary small mb-1">ID {libro.id}</div>
+                <div className="text-secondary small mb-1">
+                  ID {libro.id}
+                </div>
+
                 <div className="h5 mb-1 fw-semibold">
                   {libro.titulo ?? "Sin título"}
                 </div>
+
                 <div className="text-secondary">
-                  Autor: <span className="text-body">{libro.autor ?? "—"}</span>
+                  Autor:{" "}
+                  <span className="text-body">
+                    {libro.autor ?? "—"}
+                  </span>
                 </div>
               </div>
 
@@ -158,10 +163,11 @@ export default function DetalleLibro() {
               </span>
             </div>
 
-            {/* Cover */}
             {coverSrc ? (
               <div className="mt-4">
-                <div className="text-secondary small mb-2">Portada</div>
+                <div className="text-secondary small mb-2">
+                  Portada
+                </div>
 
                 <div
                   className="border rounded-3 overflow-hidden"
@@ -170,7 +176,11 @@ export default function DetalleLibro() {
                   <img
                     src={coverSrc}
                     alt={`Portada de ${libro.titulo}`}
-                    style={{ width: "100%", height: "100%", objectFit: "cover" }}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                    }}
                     onError={() =>
                       setError(
                         `No se pudo cargar la portada. cover_url="${libro.cover_url}" | src="${coverSrc}"`
@@ -181,7 +191,8 @@ export default function DetalleLibro() {
 
                 <div className="small text-secondary mt-2">
                   <div>
-                    cover_url: <code>{String(libro.cover_url || "")}</code>
+                    cover_url:{" "}
+                    <code>{String(libro.cover_url || "")}</code>
                   </div>
                   <div>
                     src final: <code>{coverSrc}</code>
@@ -198,20 +209,30 @@ export default function DetalleLibro() {
 
             <div className="row g-3">
               <div className="col-12 col-md-6">
-                <div className="text-secondary small">Categoría</div>
-                <div className="fw-semibold">{categoriaNombre}</div>
+                <div className="text-secondary small">
+                  Categoría
+                </div>
+                <div className="fw-semibold">
+                  {categoriaNombre}
+                </div>
               </div>
 
               <div className="col-12 col-md-6">
                 <div className="text-secondary small">ISBN</div>
-                <div className="fw-semibold">{libro.isbn ?? "—"}</div>
+                <div className="fw-semibold">
+                  {libro.isbn ?? "—"}
+                </div>
               </div>
 
               <div className="col-12">
-                <div className="text-secondary small">Resumen</div>
+                <div className="text-secondary small">
+                  Resumen
+                </div>
                 <div className="mt-1">
                   {libro.resumen ? (
-                    <div className="text-body">{libro.resumen}</div>
+                    <div className="text-body">
+                      {libro.resumen}
+                    </div>
                   ) : (
                     <div className="text-secondary">—</div>
                   )}

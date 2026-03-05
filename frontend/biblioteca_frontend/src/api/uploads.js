@@ -1,14 +1,19 @@
+// src/api/uploads.js
 import http from "./http.js";
 
-export async function uploadCover(file) {
-  const form = new FormData();
-  form.append("file", file);
+/**
+ * POST /uploads/covers
+ * Subir imagen de portada
+ */
+export const uploadCover = async (file) => {
+  const fd = new FormData();
+  fd.append("file", file);
 
-  const { data } = await http.post("/uploads/covers", form, {
-    headers: { "Content-Type": "multipart/form-data" },
+  const res = await http.post("/uploads/covers", fd, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
   });
 
-  // Puede devolver {url: "..."} o {cover_url: "..."} o string directo
-  if (typeof data === "string") return data;
-  return data?.url || data?.cover_url || data?.public_url || "";
-}
+  return res.data;
+};

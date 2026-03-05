@@ -1,50 +1,49 @@
-// [MODIFICADO]
-import { useEffect, useState } from "react";
-import { crearCategoria, getCategorias } from "../api/categorias.js";
+// src/admin/AdminCategorias.jsx
+import { useEffect, useMemo, useState } from "react";
+import {
+  getCategorias,
+  crearCategoria,
+  actualizarCategoria,
+  eliminarCategoria,
+} from "../api/categorias.js";
 import Alerta from "../components/Alerta.jsx";
 import Spinner from "../components/Spinner.jsx";
 
 function parseFastApiError(err) {
   const data = err?.response?.data;
-
   if (Array.isArray(data?.detail)) {
     return data.detail
-      .map((e) => {
-        const loc = Array.isArray(e.loc) ? e.loc.join(".") : "body";
-        return `${loc}: ${e.msg}`;
-      })
+      .map((e) => `${Array.isArray(e.loc) ? e.loc.join(".") : "body"}: ${e.msg}`)
       .join(" | ");
   }
-
-  return (
-    data?.detail ||
-    data?.message ||
-    `Error ${err?.response?.status || ""}`.trim() ||
-    "Ocurrió un error."
-  );
+  return data?.detail || data?.message || `Error ${err?.response?.status || ""}`.trim() || "Ocurrió un error.";
 }
 
-export default function Categorias() {
+function normalizarListado(data) {
+  if (Array.isArray(data)) return data;
+  if (Array.isArray(data?.items)) return data.items;
+  return [];
+}
+
+export default function AdminCategorias() {
   const [items, setItems] = useState([]);
   const [cargando, setCargando] = useState(true);
-  const [guardando, setGuardando] = useState(false);
-
-  const [nombre, setNombre] = useState("");
-  const [descripcion, setDescripcion] = useState("");
-
   const [error, setError] = useState("");
   const [ok, setOk] = useState("");
 
-  const normalizarListado = (data) => {
-    if (Array.isArray(data)) return data;
-    if (Array.isArray(data?.items)) return data.items;
-    return [];
-  };
+  const [nombre, setNombre] = useState("");
+  const [editId, setEditId] = useState(null);
+  const [editNombre, setEditNombre] = useState("");
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
+
+  const sorted = useMemo(() => {
+    return [...items].sort((a, b) => String(a.nombre).localeCompare(String(b.nombre)));
+  }, [items]);
 
   const cargar = async () => {
+    setCargando(true);
     setError("");
     setOk("");
-    setCargando(true);
     try {
       const data = await getCategorias();
       setItems(normalizarListado(data));
@@ -63,142 +62,218 @@ export default function Categorias() {
     e.preventDefault();
     setError("");
     setOk("");
-
-    if (!nombre.trim()) {
-      setError("El nombre de la categoría es obligatorio.");
-      return;
-    }
-
-    setGuardando(true);
     try {
-      await crearCategoria({
-        nombre: nombre.trim(),
-        // Si está vacío, mandamos null para que quede NULL en DB (opcional)
-        descripcion: descripcion.trim() ? descripcion.trim() : null,
-      });
-
-      setOk("Categoría creada.");
+      const payload = { nombre: nombre.trim() };
+      if (!payload.nombre) {
+        setError("El nombre es obligatorio.");
+        return;
+      }
+      await crearCategoria(payload);
       setNombre("");
-      setDescripcion("");
-      await cargar();
+      setOk("Categoría creada ✅");
+      cargar();
     } catch (err) {
       setError(parseFastApiError(err));
-    } finally {
-      setGuardando(false);
+    }
+  };
+
+  const abrirEditar = (c) => {
+    setError("");
+    setOk("");
+    setEditId(c.id);
+    setEditNombre(c.nombre ?? "");
+  };
+
+  const cancelarEditar = () => {
+    setEditId(null);
+    setEditNombre("");
+  };
+
+  const onGuardarEdicion = async () => {
+    setError("");
+    setOk("");
+    try {
+      const payload = { nombre: editNombre.trim() };
+      if (!payload.nombre) {
+        setError("El nombre es obligatorio.");
+        return;
+      }
+      await actualizarCategoria(editId, payload);
+      setOk("Categoría actualizada ✅");
+      cancelarEditar();
+      cargar();
+    } catch (err) {
+      setError(parseFastApiError(err));
+    }
+  };
+
+  const onEliminar = async () => {
+    setError("");
+    setOk("");
+    try {
+      await eliminarCategoria(confirmDeleteId);
+      setOk("Categoría eliminada ✅");
+      setConfirmDeleteId(null);
+      cargar();
+    } catch (err) {
+      setError(parseFastApiError(err));
     }
   };
 
   return (
-    <div className="row g-4">
-      <div className="col-12 col-lg-5">
-        <div className="p-4 border rounded-3 bg-body-tertiary">
-          <h1 className="h4 mb-3">
-            <i className="bi bi-tags me-2"></i>
-            Categorías
-          </h1>
+    <div className="container py-4">
+      <div className="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+        <h3 className="m-0">
+          <i className="bi bi-tags me-2" />
+          Admin Categorías
+        </h3>
 
-          <Alerta mensaje={error} />
-          <Alerta type="success" mensaje={ok} />
+        <button className="btn btn-outline-light" onClick={cargar} disabled={cargando}>
+          <i className="bi bi-arrow-clockwise me-2" />
+          Recargar
+        </button>
+      </div>
 
-          <form onSubmit={onCrear}>
-            <div className="mb-3">
-              <label className="form-label">Nombre (obligatorio)</label>
+      <Alerta mensaje={error} />
+      <Alerta type="success" mensaje={ok} />
+
+      <div className="row g-3">
+        <div className="col-12 col-lg-4">
+          <div className="p-4 border rounded-3 bg-body-tertiary">
+            <div className="h5 mb-3">Crear categoría</div>
+            <form onSubmit={onCrear}>
+              <label className="form-label">Nombre</label>
               <input
-                type="text"
                 className="form-control"
                 value={nombre}
                 onChange={(e) => setNombre(e.target.value)}
-                placeholder="Ej: Ciencia ficción"
+                placeholder="Ej: Ciencia Ficción"
               />
-            </div>
+              <button className="btn btn-light mt-3 w-100" type="submit">
+                <i className="bi bi-plus-circle me-2" />
+                Crear
+              </button>
+            </form>
 
-            <div className="mb-3">
-              <label className="form-label">Descripción (opcional)</label>
-              <input
-                type="text"
-                className="form-control"
-                value={descripcion}
-                onChange={(e) => setDescripcion(e.target.value)}
-                placeholder="Ej: Libros sobre desarrollo backend"
-              />
-              <div className="form-text text-secondary">
-                Si la dejas vacía, se guardará como <code>NULL</code>.
+            <div className="text-secondary small mt-3">
+              Endpoints: <code>GET /categorias</code> — <code>POST /categorias</code> —{" "}
+              <code>PUT /categorias/{`{id}`}</code> — <code>DELETE /categorias/{`{id}`}</code>
+            </div>
+          </div>
+        </div>
+
+        <div className="col-12 col-lg-8">
+          <div className="p-4 border rounded-3 bg-body-tertiary">
+            <div className="h5 mb-3">Listado</div>
+
+            {cargando ? (
+              <Spinner texto="Cargando..." />
+            ) : (
+              <div className="table-responsive">
+                <table className="table table-dark table-hover align-middle">
+                  <thead>
+                    <tr>
+                      <th style={{ width: 90 }}>ID</th>
+                      <th>Nombre</th>
+                      <th style={{ width: 200 }} className="text-end"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {sorted.map((c) => (
+                      <tr key={c.id}>
+                        <td className="text-secondary">{c.id}</td>
+                        <td className="fw-semibold">{c.nombre}</td>
+                        <td className="text-end">
+                          <button className="btn btn-sm btn-outline-info me-2" onClick={() => abrirEditar(c)}>
+                            <i className="bi bi-pencil me-1" />
+                            Editar
+                          </button>
+                          <button
+                            className="btn btn-sm btn-outline-danger"
+                            onClick={() => setConfirmDeleteId(c.id)}
+                          >
+                            <i className="bi bi-trash me-1" />
+                            Eliminar
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+
+                    {sorted.length === 0 && (
+                      <tr>
+                        <td colSpan="3" className="text-center text-secondary py-4">
+                          Sin categorías
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Modal Editar */}
+      {editId != null && (
+        <div className="modal d-block" tabIndex="-1" role="dialog">
+          <div className="modal-dialog modal-dialog-centered" role="document">
+            <div className="modal-content bg-dark text-light border">
+              <div className="modal-header">
+                <h5 className="modal-title">Editar categoría #{editId}</h5>
+                <button type="button" className="btn-close btn-close-white" onClick={cancelarEditar} />
+              </div>
+              <div className="modal-body">
+                <label className="form-label">Nombre</label>
+                <input
+                  className="form-control"
+                  value={editNombre}
+                  onChange={(e) => setEditNombre(e.target.value)}
+                />
+              </div>
+              <div className="modal-footer">
+                <button className="btn btn-outline-light" onClick={cancelarEditar}>
+                  Cancelar
+                </button>
+                <button className="btn btn-light" onClick={onGuardarEdicion}>
+                  Guardar
+                </button>
               </div>
             </div>
-
-            <button
-              type="submit"
-              className="btn btn-light w-100"
-              disabled={guardando}
-            >
-              {guardando ? (
-                <>
-                  <span
-                    className="spinner-border spinner-border-sm me-2"
-                    role="status"
-                    aria-hidden="true"
-                  ></span>
-                  Guardando...
-                </>
-              ) : (
-                "Crear categoría"
-              )}
-            </button>
-          </form>
-
-          <div className="mt-3 small text-secondary">
-            Conectado a: <code>GET /categorias</code> y <code>POST /categorias</code>
           </div>
+          <div className="modal-backdrop show" onClick={cancelarEditar} />
         </div>
-      </div>
+      )}
 
-      <div className="col-12 col-lg-7">
-        <div className="p-4 border rounded-3 bg-body-tertiary">
-          <div className="d-flex align-items-center justify-content-between mb-3">
-            <h2 className="h5 mb-0">
-              <i className="bi bi-list-ul me-2"></i>
-              Listado
-            </h2>
-            <button
-              className="btn btn-sm btn-outline-light"
-              onClick={cargar}
-              disabled={cargando}
-            >
-              <i className="bi bi-arrow-clockwise me-1"></i>
-              Recargar
-            </button>
-          </div>
-
-          {cargando ? (
-            <Spinner texto="Cargando categorías..." />
-          ) : items.length === 0 ? (
-            <div className="text-secondary">No hay categorías todavía.</div>
-          ) : (
-            <div className="table-responsive">
-              <table className="table table-dark table-hover align-middle mb-0">
-                <thead>
-                  <tr>
-                    <th style={{ width: 90 }}>ID</th>
-                    <th style={{ width: 220 }}>Nombre</th>
-                    <th>Descripción</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((c) => (
-                    <tr key={c.id ?? `${c.nombre}-${c.descripcion ?? ""}`}>
-                      <td className="text-secondary">{c.id ?? "-"}</td>
-                      <td className="fw-semibold">{c.nombre ?? "-"}</td>
-                      <td className="text-secondary">
-                        {c.descripcion ? c.descripcion : <span className="opacity-50">—</span>}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+      {/* Modal Eliminar */}
+      {confirmDeleteId != null && (
+        <div className="modal d-block" tabIndex="-1" role="dialog">
+          <div className="modal-dialog modal-dialog-centered" role="document">
+            <div className="modal-content bg-dark text-light border">
+              <div className="modal-header">
+                <h5 className="modal-title">Eliminar categoría</h5>
+                <button
+                  type="button"
+                  className="btn-close btn-close-white"
+                  onClick={() => setConfirmDeleteId(null)}
+                />
+              </div>
+              <div className="modal-body">
+                ¿Seguro que deseas eliminar la categoría #{confirmDeleteId}?
+              </div>
+              <div className="modal-footer">
+                <button className="btn btn-outline-light" onClick={() => setConfirmDeleteId(null)}>
+                  Cancelar
+                </button>
+                <button className="btn btn-danger" onClick={onEliminar}>
+                  Eliminar
+                </button>
+              </div>
             </div>
-          )}
+          </div>
+          <div className="modal-backdrop show" onClick={() => setConfirmDeleteId(null)} />
         </div>
-      </div>
+      )}
     </div>
   );
 }

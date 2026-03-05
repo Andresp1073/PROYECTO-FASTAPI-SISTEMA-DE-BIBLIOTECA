@@ -1,13 +1,25 @@
-// [MODIFICADO]
 import http from "./http.js";
 
-export async function getCategorias() {
-  const { data } = await http.get("/categorias");
-  return data;
-}
+// GET /categorias
+export const getCategorias = async () => {
+  const res = await http.get("/categorias");
+  return res.data;
+};
 
-export async function crearCategoria(payload) {
-  // payload: { nombre: string, descripcion?: string|null }
-  const { data } = await http.post("/categorias", payload);
-  return data;
-}
+// POST /categorias
+export const crearCategoria = async (payload) => {
+  const res = await http.post("/categorias", payload);
+  return res.data;
+};
+
+// PUT /categorias/{id}
+export const actualizarCategoria = async (id, payload) => {
+  const res = await http.put(`/categorias/${id}`, payload);
+  return res.data;
+};
+
+// DELETE /categorias/{id}
+export const eliminarCategoria = async (id) => {
+  const res = await http.delete(`/categorias/${id}`);
+  return res.data;
+};

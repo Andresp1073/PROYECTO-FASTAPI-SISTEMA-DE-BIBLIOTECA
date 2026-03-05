@@ -1,54 +1,84 @@
-// [MODIFICADO]
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
-import { logout as apiLogout } from "../api/auth.js";
-import { configureAuth, raw } from "../api/http.js";
+import http, {
+  setAccessTokenMemory,
+  clearAccessTokenMemory,
+} from "../api/http.js";
 
 const AuthContext = createContext(null);
 
+function normalizeRole(me) {
+  const raw = me?.rol ?? me?.role ?? null;
+  if (!raw) return null;
+  if (typeof raw !== "string") return null;
+  return raw.trim().toUpperCase();
+}
+
 export function AuthProvider({ children }) {
-  const [accessToken, setAccessToken] = useState(null);
-  const [authReady, setAuthReady] = useState(false);
+  const [accessToken, setAccessTokenState] = useState(null);
+  const [user, setUser] = useState(null);
+  const [booting, setBooting] = useState(true);
 
-  // por ahora no inferimos rol (se retoma luego con solución backend-friendly)
-  const user = null;
-  const isAuthenticated = Boolean(accessToken);
-  const isAdmin = false;
-
-  const clearAuth = () => setAccessToken(null);
-
-  const logout = async () => {
-    try {
-      await apiLogout();
-    } catch (_) {
-      // ignore
-    } finally {
-      clearAuth();
-    }
+  const setAccessToken = (token) => {
+    // ✅ importante: primero en memoria (inmediato)
+    setAccessTokenMemory(token);
+    // luego state
+    setAccessTokenState(token);
   };
 
-  useEffect(() => {
-    configureAuth({
-      tokenGetter: () => accessToken,
-      logoutHandler: () => clearAuth(),
-    });
-  }, [accessToken]);
+  const clearAuth = () => {
+    clearAccessTokenMemory();
+    setAccessTokenState(null);
+    setUser(null);
+  };
 
-  // init: intentar refresh una vez, pero 401 es normal si no hay cookie
+  const loadMe = async () => {
+    const { data } = await http.get("/auth/me");
+
+    const rol = normalizeRole(data);
+
+    const normalized = {
+      ...data,
+      rol: rol || data?.rol || data?.role || null,
+    };
+
+    setUser(normalized);
+    return normalized;
+  };
+
+  const isAuthenticated = !!accessToken;
+  const isAdmin = user?.rol?.toUpperCase?.() === "ADMIN";
+
+  // Boot: si hay cookie refresh válida => sacar access token y cargar /auth/me
   useEffect(() => {
-    const init = async () => {
+    const boot = async () => {
       try {
-        const r = await raw.post("/auth/refresh");
-        const token = r?.data?.access_token || null;
-        if (token) setAccessToken(token);
-      } catch (err) {
-        // ✅ Si es 401, NO es error grave: solo no hay sesión previa
-        // No hacemos nada.
+        const res = await http.post("/auth/refresh");
+
+        const token =
+          res?.data?.access_token || res?.data?.accessToken || null;
+
+        if (!token) {
+          clearAuth();
+          return;
+        }
+
+        setAccessToken(token);
+
+        try {
+          await loadMe();
+        } catch {
+          // si falla /auth/me dejamos user null
+          setUser(null);
+        }
+      } catch {
+        clearAuth();
       } finally {
-        setAuthReady(true);
+        setBooting(false);
       }
     };
 
-    init();
+    boot();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const value = useMemo(
@@ -56,13 +86,15 @@ export function AuthProvider({ children }) {
       accessToken,
       setAccessToken,
       user,
+      setUser,
+      loadMe,
+      fetchMe: loadMe, // alias
       isAuthenticated,
       isAdmin,
-      authReady,
+      booting,
       clearAuth,
-      logout,
     }),
-    [accessToken, authReady, isAuthenticated]
+    [accessToken, user, isAuthenticated, isAdmin, booting]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
@@ -70,17 +102,6 @@ export function AuthProvider({ children }) {
 
 export function useAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx) {
-    return {
-      accessToken: null,
-      setAccessToken: () => {},
-      user: null,
-      isAuthenticated: false,
-      isAdmin: false,
-      authReady: true,
-      clearAuth: () => {},
-      logout: async () => {},
-    };
-  }
+  if (!ctx) throw new Error("useAuth debe usarse dentro de AuthProvider");
   return ctx;
 }

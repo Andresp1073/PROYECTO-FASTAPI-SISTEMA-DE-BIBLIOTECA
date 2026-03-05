@@ -1,97 +1,79 @@
-// [MODIFICADO]
 import axios from "axios";
 
-export const raw = axios.create({
-  baseURL: "http://127.0.0.1:8000",
-  withCredentials: true,
-});
+// Token en memoria (NO localStorage)
+let accessTokenMemory = null;
+
+export function setAccessTokenMemory(token) {
+  accessTokenMemory = token;
+}
+
+export function clearAccessTokenMemory() {
+  accessTokenMemory = null;
+}
+
+export function getAccessTokenMemory() {
+  return accessTokenMemory;
+}
 
 const http = axios.create({
   baseURL: "http://127.0.0.1:8000",
-  withCredentials: true,
+  withCredentials: true, // ✅ refreshtoken cookie HttpOnly
 });
 
-let getAccessToken = () => null;
-let onLogout = () => {};
-
-export function configureAuth({ tokenGetter, logoutHandler }) {
-  if (typeof tokenGetter === "function") getAccessToken = tokenGetter;
-  if (typeof logoutHandler === "function") onLogout = logoutHandler;
-}
-
 http.interceptors.request.use((config) => {
-  const token = getAccessToken();
+  const token = getAccessTokenMemory();
   if (token) {
-    config.headers = config.headers || {};
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 });
 
 let isRefreshing = false;
-let queue = [];
-
-function flushQueue(error, token) {
-  queue.forEach(({ resolve, reject }) => {
-    if (error) reject(error);
-    else resolve(token);
-  });
-  queue = [];
-}
+let refreshPromise = null;
 
 http.interceptors.response.use(
   (res) => res,
-  async (error) => {
-    const original = error?.config;
-    const status = error?.response?.status;
+  async (err) => {
+    const original = err.config;
 
-    if (!original || original._retry) return Promise.reject(error);
+    if (err?.response?.status !== 401) return Promise.reject(err);
 
-    if (status === 401) {
-      // si el mismo refresh falló, logout y ya
-      if (String(original.url || "").includes("/auth/refresh")) {
-        onLogout();
-        return Promise.reject(error);
-      }
+    // evitar loops
+    if (original?._retry) return Promise.reject(err);
+    original._retry = true;
 
-      original._retry = true;
-
-      if (isRefreshing) {
-        return new Promise((resolve, reject) => {
-          queue.push({
-            resolve: (token) => {
-              original.headers = original.headers || {};
-              original.headers.Authorization = `Bearer ${token}`;
-              resolve(http(original));
-            },
-            reject,
-          });
-        });
-      }
-
-      isRefreshing = true;
-
-      try {
-        const r = await raw.post("/auth/refresh");
-        const newToken = r?.data?.access_token || null;
-
-        if (!newToken) throw new Error("Refresh sin access_token");
-
-        flushQueue(null, newToken);
-
-        original.headers = original.headers || {};
-        original.headers.Authorization = `Bearer ${newToken}`;
-        return http(original);
-      } catch (e) {
-        flushQueue(e, null);
-        onLogout();
-        return Promise.reject(e);
-      } finally {
-        isRefreshing = false;
-      }
+    // si el 401 viene del refresh, no reintentar
+    if (original?.url?.includes("/auth/refresh")) {
+      return Promise.reject(err);
     }
 
-    return Promise.reject(error);
+    try {
+      if (!isRefreshing) {
+        isRefreshing = true;
+        refreshPromise = http.post("/auth/refresh");
+      }
+
+      const refreshRes = await refreshPromise;
+
+      isRefreshing = false;
+      refreshPromise = null;
+
+      const newToken =
+        refreshRes?.data?.access_token || refreshRes?.data?.accessToken || null;
+
+      if (!newToken) return Promise.reject(err);
+
+      // ✅ guardar token en memoria para siguientes requests
+      setAccessTokenMemory(newToken);
+
+      // reintentar request original con nuevo token
+      original.headers.Authorization = `Bearer ${newToken}`;
+      return http(original);
+    } catch (e) {
+      isRefreshing = false;
+      refreshPromise = null;
+      return Promise.reject(e);
+    }
   }
 );
 

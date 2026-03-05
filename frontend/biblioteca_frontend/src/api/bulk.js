@@ -1,12 +1,18 @@
+// src/api/bulk.js
 import http from "./http.js";
 
-export async function bulkLibrosCSV(file) {
-  const form = new FormData();
-  form.append("file", file);
+/**
+ * POST /bulk/libros
+ * Enviamos multipart/form-data con un archivo CSV.
+ * Por defecto usa el campo "file".
+ */
+export const bulkLibrosCsv = async (file, fieldName = "file") => {
+  const fd = new FormData();
+  fd.append(fieldName, file);
 
-  const { data } = await http.post("/bulk/libros", form, {
+  const res = await http.post("/bulk/libros", fd, {
     headers: { "Content-Type": "multipart/form-data" },
   });
 
-  return data;
-}
+  return res.data;
+};

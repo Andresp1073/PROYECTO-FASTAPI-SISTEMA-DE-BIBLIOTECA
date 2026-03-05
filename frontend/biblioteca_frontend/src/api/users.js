@@ -1,23 +1,28 @@
-// [MODIFICADO]
+// src/api/users.js
 import http from "./http.js";
 
-export async function getUsers() {
-  const { data } = await http.get("/users/");
-  return data;
-}
+// GET /users/
+export const getUsers = async () => {
+  const res = await http.get("/users/");
+  return res.data;
+};
 
-export async function getUserById(id) {
-  const { data } = await http.get(`/users/${id}`);
-  return data;
-}
+// GET /users/{user_id}
+export const getUserById = async (userId) => {
+  const res = await http.get(`/users/${userId}`);
+  return res.data;
+};
 
-export async function updateUser(id, payload) {
-  const { data } = await http.put(`/users/${id}`, payload);
-  return data;
-}
+// PUT /users/{user_id}
+export const updateUser = async (userId, payload) => {
+  const res = await http.put(`/users/${userId}`, payload);
+  return res.data;
+};
 
-// Según tu swagger: POST /users/{user_id}/reset-password
-export async function adminResetPassword(userId, payload) {
-  const { data } = await http.post(`/users/${userId}/reset-password`, payload);
-  return data;
-}
+// POST /users/{user_id}/reset-password
+// payload: según tu backend (ej: { new_password: "..." } o { password: "..." })
+// Si tu backend no requiere body, manda {}.
+export const resetUserPassword = async (userId, payload = {}) => {
+  const res = await http.post(`/users/${userId}/reset-password`, payload);
+  return res.data;
+};
