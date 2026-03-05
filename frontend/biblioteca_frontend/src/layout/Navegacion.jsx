@@ -11,6 +11,9 @@ export default function Navegacion() {
     navigate("/login");
   };
 
+  const linkClass = ({ isActive }) =>
+    `btn btn-sm ${isActive ? "btn-light" : "btn-outline-light"}`;
+
   return (
     <nav className="navbar navbar-expand-lg border-bottom bg-body-tertiary">
       <div className="container">
@@ -22,7 +25,7 @@ export default function Navegacion() {
         <div className="d-flex gap-2 flex-wrap">
           {!isAuthenticated && (
             <>
-              <NavLink className="btn btn-sm btn-outline-light" to="/login">
+              <NavLink className={linkClass} to="/login">
                 <i className="bi bi-box-arrow-in-right me-1"></i> Login
               </NavLink>
 
@@ -34,15 +37,15 @@ export default function Navegacion() {
 
           {isAuthenticated && (
             <>
-              <NavLink className="btn btn-sm btn-outline-light" to="/categorias">
+              <NavLink className={linkClass} to="/categorias">
                 <i className="bi bi-tags me-1"></i> Categorías
               </NavLink>
 
-              <NavLink className="btn btn-sm btn-outline-light" to="/libros">
+              <NavLink className={linkClass} to="/libros">
                 <i className="bi bi-journals me-1"></i> Libros
               </NavLink>
 
-              <NavLink className="btn btn-sm btn-outline-light" to="/prestamos">
+              <NavLink className={linkClass} to="/prestamos">
                 <i className="bi bi-journal-check me-1"></i> Mis Préstamos
               </NavLink>
 
