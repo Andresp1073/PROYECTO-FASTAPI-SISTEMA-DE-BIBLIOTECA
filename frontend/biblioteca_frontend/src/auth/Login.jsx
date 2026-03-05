@@ -1,49 +1,73 @@
 // [MODIFICADO]
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { login as apiLogin } from "../api/auth.js";
 import { useAuth } from "../context/AuthContext.jsx";
 import Alerta from "../components/Alerta.jsx";
 
+function parseFastApiError(err) {
+  const data = err?.response?.data;
+
+  if (Array.isArray(data?.detail)) {
+    return data.detail
+      .map((e) => {
+        const loc = Array.isArray(e.loc) ? e.loc.join(".") : "body";
+        return `${loc}: ${e.msg}`;
+      })
+      .join(" | ");
+  }
+
+  return data?.detail || data?.message || "Error inesperado";
+}
+
 export default function Login() {
   const navigate = useNavigate();
-  const { setAccessToken } = useAuth();
+  const { setAccessToken, setUser } = useAuth();
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState("");
 
-  const onSubmit = async (e) => {
+  const submit = async (e) => {
     e.preventDefault();
     setError("");
-
-    if (!email.trim() || !password.trim()) {
-      setError("Email y contraseña son obligatorios.");
-      return;
-    }
-
     setCargando(true);
+
     try {
       const data = await apiLogin({ email, password });
 
-      const token = data?.access_token;
+      const token =
+        data?.access_token || data?.accessToken || data?.token || null;
+
       if (!token) {
-        setError("Login exitoso, pero no llegó access_token.");
+        setError("El backend no retornó access_token. Revisa respuesta de /auth/login.");
         return;
       }
 
-      // Guardar solo en memoria (Context)
       setAccessToken(token);
 
-      // Ir al home
-      navigate("/", { replace: true });
+      // ✅ user puede venir como user/usuario o directamente campos
+      const u =
+        data?.user ||
+        data?.usuario ||
+        (data?.rol || data?.email || data?.nombre
+          ? {
+              id: data?.id,
+              nombre: data?.nombre,
+              email: data?.email,
+              rol: data?.rol,
+            }
+          : null);
+
+      if (u) setUser(u);
+
+      // si es admin, lo mandamos a /admin, si no, a /libros
+      if ((u?.rol || "").toUpperCase() === "ADMIN") navigate("/admin");
+      else navigate("/libros");
     } catch (err) {
-      const msg =
-        err?.response?.data?.detail ||
-        err?.response?.data?.message ||
-        "Credenciales inválidas o error de servidor.";
-      setError(String(msg));
+      setError(parseFastApiError(err));
     } finally {
       setCargando(false);
     }
@@ -51,7 +75,7 @@ export default function Login() {
 
   return (
     <div className="row justify-content-center">
-      <div className="col-12 col-md-8 col-lg-5">
+      <div className="col-12 col-md-7 col-lg-5">
         <div className="p-4 border rounded-3 bg-body-tertiary">
           <h1 className="h4 mb-3">
             <i className="bi bi-box-arrow-in-right me-2"></i>
@@ -60,58 +84,37 @@ export default function Login() {
 
           <Alerta mensaje={error} />
 
-          <form onSubmit={onSubmit}>
+          <form onSubmit={submit}>
             <div className="mb-3">
               <label className="form-label">Email</label>
               <input
-                type="email"
                 className="form-control"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="correo@ejemplo.com"
-                autoComplete="email"
+                type="email"
+                required
               />
             </div>
 
             <div className="mb-3">
               <label className="form-label">Contraseña</label>
               <input
-                type="password"
                 className="form-control"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                autoComplete="current-password"
+                type="password"
+                required
               />
             </div>
 
-            <button
-              type="submit"
-              className="btn btn-light w-100"
-              disabled={cargando}
-            >
-              {cargando ? (
-                <>
-                  <span
-                    className="spinner-border spinner-border-sm me-2"
-                    role="status"
-                    aria-hidden="true"
-                  ></span>
-                  Iniciando...
-                </>
-              ) : (
-                "Entrar"
-              )}
+            <button className="btn btn-light w-100" disabled={cargando}>
+              {cargando ? "Entrando..." : "Entrar"}
             </button>
           </form>
 
           <div className="d-flex justify-content-between mt-3">
-            <Link to="/forgot-password" className="link-secondary">
-              ¿Olvidaste tu contraseña?
-            </Link>
-            <Link to="/register" className="link-secondary">
-              Crear cuenta
-            </Link>
+            <Link to="/forgot-password">¿Olvidaste tu contraseña?</Link>
+            <Link to="/register">Crear cuenta</Link>
           </div>
         </div>
       </div>
