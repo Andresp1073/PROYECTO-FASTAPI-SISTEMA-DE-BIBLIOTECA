@@ -205,7 +205,7 @@ El sistema utiliza un esquema de doble token:
 - **Access Token**: JWT de corta duración (15 minutos) almacenado en memoria
 - **Refresh Token**: Cookie HttpOnly de larga duración (7 días)
 
-El frontend incluye interceptores automáticos para refrescar el token cuando expira [3](#1-2) .
+El frontend incluye interceptores automáticos para refrescar el token cuando expira.
 
 ## API Endpoints
 
@@ -225,7 +225,7 @@ La API expone los siguientes grupos de endpoints:
 - Modo oscuro por defecto
 - Navegación intuitiva
 - Componentes reutilizables (Alerta, Spinner)
-- Protección de rutas por rol [4](#1-3) 
+- Protección de rutas por rol
 
 ## Contribución
 
@@ -237,7 +237,7 @@ La API expone los siguientes grupos de endpoints:
 
 ## Licencia
 
-Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para detalles.
+Este proyecto está bajo la Licencia MIT.
 
 ## Contacto
 
