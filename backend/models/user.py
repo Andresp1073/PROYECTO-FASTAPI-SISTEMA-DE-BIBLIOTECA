@@ -18,6 +18,7 @@ class User(Base):
     nombre = Column(String(120), nullable=False)
     email = Column(String(255), unique=True, index=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
+    documento = Column(String(50), nullable=True, index=True)  # Documento de identidad
 
     rol = Column(Enum(UserRol), nullable=False, default=UserRol.USUARIO)
 
@@ -29,3 +30,4 @@ class User(Base):
     auth_tokens = relationship("AuthToken", back_populates="user", cascade="all, delete-orphan")
     email_tokens = relationship("EmailToken", back_populates="user", cascade="all, delete-orphan")
     prestamos = relationship("Prestamo", back_populates="user", cascade="all, delete-orphan")
+    notificaciones = relationship("Notificacion", back_populates="usuario", cascade="all, delete-orphan")

@@ -1,5 +1,6 @@
 // [MODIFICADO]
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   getCategorias,
   crearCategoria,
@@ -20,6 +21,7 @@ function parseFastApiError(err) {
 }
 
 export default function AdminCategorias() {
+  const navigate = useNavigate();
   const [items, setItems] = useState([]);
   const [cargando, setCargando] = useState(true);
 
@@ -107,11 +109,16 @@ export default function AdminCategorias() {
 
   return (
     <div className="container py-4">
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        <h3 className="m-0">
-          <i className="bi bi-tags me-2" />
-          Admin Categorías
-        </h3>
+<div className="d-flex justify-content-between align-items-center mb-3">
+        <div className="d-flex align-items-center gap-2">
+          <button className="btn btn-outline-light btn-sm" onClick={() => navigate("/admin")}>
+            <i className="bi bi-arrow-left" />
+          </button>
+          <h3 className="m-0">
+            <i className="bi bi-tags me-2" />
+            Admin Categorías
+          </h3>
+        </div>
         <button className="btn btn-outline-light" onClick={cargar}>
           <i className="bi bi-arrow-clockwise me-2" />
           Recargar

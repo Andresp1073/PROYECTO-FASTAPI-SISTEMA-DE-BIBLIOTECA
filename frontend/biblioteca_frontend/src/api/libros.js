@@ -1,8 +1,8 @@
 import http from "./http.js";
 
 // GET /libros
-export const getLibros = async () => {
-  const res = await http.get("/libros");
+export const getLibros = async (params = {}) => {
+  const res = await http.get("/libros", { params });
   return res.data;
 };
 

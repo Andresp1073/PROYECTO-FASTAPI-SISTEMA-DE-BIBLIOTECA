@@ -1,10 +1,38 @@
 // src/layout/Navegacion.jsx
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { Link, NavLink, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
+import { useState, useEffect, useCallback } from "react";
+import { getNotificacionesNoLeidas, getSolicitudesPendientes } from "../api/solicitudes.js";
 
 export default function Navegacion() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, isAuthenticated, logout } = useAuth();
+  const [notifCount, setNotifCount] = useState(0);
+  const [solicitudesCount, setSolicitudesCount] = useState(0);
+
+  const fetchCounts = useCallback(() => {
+    if (!isAuthenticated) return;
+    
+    if (user?.rol === "ADMIN") {
+      getSolicitudesPendientes()
+        .then((res) => setSolicitudesCount(res.length || 0))
+        .catch(() => {});
+    } else {
+      getNotificacionesNoLeidas()
+        .then((res) => setNotifCount(res.count || 0))
+        .catch(() => {});
+    }
+  }, [isAuthenticated, user?.rol]);
+
+  useEffect(() => {
+    fetchCounts();
+  }, [fetchCounts, location.pathname]);
+
+  useEffect(() => {
+    const interval = setInterval(fetchCounts, 30000);
+    return () => clearInterval(interval);
+  }, [fetchCounts]);
 
   if (!isAuthenticated) return null;
 
@@ -53,10 +81,20 @@ export default function Navegacion() {
                   </NavLink>
                 </li>
 
-                <li className="nav-item">
+<li className="nav-item">
                   <NavLink className="nav-link" to="/prestamos">
                     <i className="bi bi-journal-check me-1" />
                     Mis Préstamos
+                  </NavLink>
+                </li>
+
+                <li className="nav-item">
+                  <NavLink className="nav-link" to="/notificaciones">
+                    <i className="bi bi-bell me-1" />
+                    Notificaciones
+                    {notifCount > 0 && (
+                      <span className="badge bg-danger ms-1">{notifCount > 9 ? '9+' : notifCount}</span>
+                    )}
                   </NavLink>
                 </li>
               </>
@@ -84,10 +122,20 @@ export default function Navegacion() {
                   </NavLink>
                 </li>
 
-                <li className="nav-item">
+<li className="nav-item">
                   <NavLink className="nav-link" to="/admin/prestamos">
                     <i className="bi bi-clipboard-check me-1" />
                     Préstamos
+                  </NavLink>
+                </li>
+
+                <li className="nav-item">
+                  <NavLink className="nav-link" to="/admin/solicitudes">
+                    <i className="bi bi-envelope-check me-1" />
+                    Solicitudes
+                    {solicitudesCount > 0 && (
+                      <span className="badge bg-danger ms-1">{solicitudesCount > 9 ? '9+' : solicitudesCount}</span>
+                    )}
                   </NavLink>
                 </li>
 
@@ -98,10 +146,10 @@ export default function Navegacion() {
                   </NavLink>
                 </li>
 
-                <li className="nav-item">
+<li className="nav-item">
                   <NavLink className="nav-link" to="/admin/carga-masiva">
                     <i className="bi bi-upload me-1" />
-                    Carga Masiva
+                    Carga Masiva de Libros
                   </NavLink>
                 </li>
               </>

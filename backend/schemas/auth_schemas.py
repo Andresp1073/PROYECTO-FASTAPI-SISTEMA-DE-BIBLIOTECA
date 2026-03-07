@@ -5,6 +5,7 @@ class RegisterRequest(BaseModel):
     nombre: str = Field(..., min_length=2, max_length=120)
     email: EmailStr
     password: str = Field(..., min_length=8, max_length=128)
+    documento: str | None = Field(default=None, max_length=50)
 
 
 class LoginRequest(BaseModel):

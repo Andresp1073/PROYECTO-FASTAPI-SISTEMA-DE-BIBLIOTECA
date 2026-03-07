@@ -26,6 +26,7 @@ function parseFastApiError(err) {
 
 export default function Register() {
   const [nombre, setNombre] = useState("");
+  const [documento, setDocumento] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
@@ -45,12 +46,13 @@ export default function Register() {
 
     setCargando(true);
     try {
-      await apiRegister({ nombre, email, password });
+      await apiRegister({ nombre, email, password, documento: documento.trim() || null });
 
       setOk(
-        "Registro exitoso. Revisa tu correo para verificar tu cuenta (Verify Email)."
+        "Registro exitoso. Revisa tu correo para verificar tu cuenta."
       );
       setNombre("");
+      setDocumento("");
       setEmail("");
       setPassword("");
     } catch (err) {
@@ -82,6 +84,18 @@ export default function Register() {
                 onChange={(e) => setNombre(e.target.value)}
                 placeholder="Tu nombre"
                 autoComplete="name"
+              />
+            </div>
+
+            <div className="mb-3">
+              <label className="form-label">Documento de identidad (opcional)</label>
+              <input
+                type="text"
+                className="form-control"
+                value={documento}
+                onChange={(e) => setDocumento(e.target.value)}
+                placeholder="DNI, Cédula, etc."
+                autoComplete="off"
               />
             </div>
 

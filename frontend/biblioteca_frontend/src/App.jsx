@@ -17,6 +17,7 @@ import Categorias from "./catalogo/Categorias.jsx";
 import ListadoLibros from "./catalogo/ListadoLibros.jsx";
 import DetalleLibro from "./catalogo/DetalleLibro.jsx";
 import MisPrestamos from "./prestamos/MisPrestamos.jsx";
+import MisNotificaciones from "./prestamos/MisNotificaciones.jsx";
 
 // Admin pages
 import AdminDashboard from "./admin/AdminDashboard.jsx";
@@ -25,6 +26,7 @@ import AdminLibros from "./admin/AdminLibros.jsx";
 import AdminUsuarios from "./admin/AdminUsuarios.jsx";
 import AdminPrestamos from "./admin/AdminPrestamos.jsx";
 import AdminCargaMasiva from "./admin/AdminCargaMasiva.jsx";
+import AdminSolicitudes from "./admin/AdminSolicitudes.jsx";
 
 export default function App() {
   return (
@@ -80,6 +82,14 @@ export default function App() {
             </RutaProtegida>
           }
         />
+        <Route
+          path="/notificaciones"
+          element={
+            <RutaProtegida>
+              <MisNotificaciones />
+            </RutaProtegida>
+          }
+        />
 
         {/* ===== ADMIN (requiere login + rol ADMIN) ===== */}
         <Route
@@ -119,6 +129,14 @@ export default function App() {
           element={
             <RutaProtegida adminOnly>
               <AdminPrestamos />
+            </RutaProtegida>
+          }
+        />
+        <Route
+          path="/admin/solicitudes"
+          element={
+            <RutaProtegida adminOnly>
+              <AdminSolicitudes />
             </RutaProtegida>
           }
         />

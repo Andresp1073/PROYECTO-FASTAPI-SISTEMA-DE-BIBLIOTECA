@@ -24,6 +24,8 @@ from models.email_token import EmailToken  # noqa: E402,F401
 from models.categoria import Categoria  # noqa: E402,F401
 from models.libro import Libro  # noqa: E402,F401
 from models.prestamo import Prestamo  # noqa: E402,F401
+from models.solicitud_prestamo import SolicitudPrestamo  # noqa: E402,F401
+from models.notificacion import Notificacion  # noqa: E402,F401
 
 def get_db():
     db = SessionLocal()

@@ -70,4 +70,5 @@ def build_refresh_cookie_kwargs() -> dict:
         "secure": True if is_prod else False,  # en DEV permite localhost sin https
         "samesite": "lax",
         "path": "/",
+        "domain": "localhost",  # Permite cookies entre puertos de localhost
     }

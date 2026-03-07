@@ -55,11 +55,11 @@ def clear_refresh_cookie(response: Response) -> None:
     )
 
 
-def register(db: Session, nombre: str, email: str, password: str) -> None:
+def register(db: Session, nombre: str, email: str, password: str, documento: str | None = None) -> None:
     # [NUEVO]
     from services.user_service import create_user  # import local para evitar ciclos
 
-    user = create_user(db, nombre=nombre, email=email, password=password)
+    user = create_user(db, nombre=nombre, email=email, password=password, documento=documento)
 
     # token verify email
     raw = create_email_token(db, user=user, tipo=EmailTokenTipo.VERIFY_EMAIL, expires_minutes=60 * 24)

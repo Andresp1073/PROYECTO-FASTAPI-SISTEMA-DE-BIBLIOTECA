@@ -1,5 +1,6 @@
 // src/admin/AdminUsuarios.jsx
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { getUsers, updateUser, resetUserPassword } from "../api/users.js";
 import Alerta from "../components/Alerta.jsx";
 import Spinner from "../components/Spinner.jsx";
@@ -26,6 +27,7 @@ function normalizarListado(data) {
 }
 
 export default function AdminUsuarios() {
+  const navigate = useNavigate();
   const [cargando, setCargando] = useState(true);
   const [items, setItems] = useState([]);
   const [error, setError] = useState("");
@@ -74,7 +76,8 @@ export default function AdminUsuarios() {
       id: u.id,
       nombre: u.nombre ?? u.name ?? "",
       email: u.email ?? "",
-      rol: u.rol ?? u.role ?? "USER",
+      documento: u.documento ?? "",
+      rol: u.rol ?? u.role ?? "USUARIO",
       is_active: Boolean(u.is_active ?? u.active ?? true),
       is_email_verified: Boolean(u.is_email_verified ?? u.email_verified ?? false),
     });
@@ -90,6 +93,7 @@ export default function AdminUsuarios() {
       const payload = {
         nombre: String(edit.nombre).trim(),
         email: String(edit.email).trim(),
+        documento: String(edit.documento).trim() || null,
         rol: edit.rol,
         is_active: Boolean(edit.is_active),
         is_email_verified: Boolean(edit.is_email_verified),
@@ -130,9 +134,12 @@ export default function AdminUsuarios() {
     }
 
     try {
-      // 👇 Ajuste flexible: intenta con { new_password } (común) y si falla el backend
-      // te mostrará el detalle exacto (422) y lo adaptamos.
-      await resetUserPassword(resetTarget.id, { new_password: newPass.trim() });
+      // Backend puede esperar { new_password } o { password }.
+      // Enviar ambos para maximizar compatibilidad.
+      await resetUserPassword(resetTarget.id, {
+        new_password: newPass.trim(),
+        password: newPass.trim(),
+      });
 
       setOk("Contraseña reseteada ✅");
       cerrarReset();
@@ -143,11 +150,16 @@ export default function AdminUsuarios() {
 
   return (
     <div className="container py-4">
-      <div className="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
-        <h3 className="m-0">
-          <i className="bi bi-people me-2" />
-          Admin Usuarios
-        </h3>
+<div className="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+        <div className="d-flex align-items-center gap-2">
+          <button className="btn btn-outline-light btn-sm" onClick={() => navigate("/admin")}>
+            <i className="bi bi-arrow-left" />
+          </button>
+          <h3 className="m-0">
+            <i className="bi bi-people me-2" />
+            Admin Usuarios
+          </h3>
+        </div>
 
         <div className="d-flex gap-2">
           <input
@@ -174,21 +186,23 @@ export default function AdminUsuarios() {
         ) : (
           <div className="table-responsive">
             <table className="table table-dark table-hover align-middle">
-              <thead>
+<thead>
                 <tr>
                   <th style={{ width: 90 }}>ID</th>
                   <th>Nombre</th>
+                  <th>Documento</th>
                   <th>Email</th>
                   <th style={{ width: 120 }}>Rol</th>
-                  <th style={{ width: 120 }}>Activo</th>
+                  <th style={{ width: 100 }}>Activo</th>
                   <th style={{ width: 160 }}>Email verificado</th>
                   <th style={{ width: 220 }} className="text-end"></th>
                 </tr>
               </thead>
 
-              <tbody>
+<tbody>
                 {filtrados.map((u) => {
                   const nombre = u.nombre ?? u.name ?? "—";
+                  const documento = u.documento ?? "—";
                   const rol = u.rol ?? u.role ?? "—";
                   const activo = Boolean(u.is_active ?? u.active ?? false);
                   const verificado = Boolean(u.is_email_verified ?? u.email_verified ?? false);
@@ -197,6 +211,7 @@ export default function AdminUsuarios() {
                     <tr key={u.id}>
                       <td className="text-secondary">{u.id}</td>
                       <td className="fw-semibold">{nombre}</td>
+                      <td className="text-secondary">{documento}</td>
                       <td className="text-secondary">{u.email ?? "—"}</td>
                       <td>
                         <span className={`badge ${rol === "ADMIN" ? "text-bg-danger" : "text-bg-secondary"}`}>
@@ -232,9 +247,9 @@ export default function AdminUsuarios() {
                   );
                 })}
 
-                {filtrados.length === 0 && (
+{filtrados.length === 0 && (
                   <tr>
-                    <td colSpan="7" className="text-center text-secondary py-4">
+                    <td colSpan="8" className="text-center text-secondary py-4">
                       Sin usuarios
                     </td>
                   </tr>
@@ -243,24 +258,20 @@ export default function AdminUsuarios() {
             </table>
           </div>
         )}
-
-        <div className="text-secondary mt-2 small">
-          Endpoints: <code>GET /users/</code> — <code>GET /users/{`{user_id}`}</code> —{" "}
-          <code>PUT /users/{`{user_id}`}</code> — <code>POST /users/{`{user_id}`}/reset-password</code>
-        </div>
       </div>
 
       {/* Modal Editar */}
       {edit && (
-        <div className="modal d-block" tabIndex="-1" role="dialog">
-          <div className="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div className="modal d-block" style={{zIndex: 1056}} tabIndex="-1" role="dialog">
+          <div className="modal-backdrop show" style={{zIndex: 1055}} onClick={cerrarEditar} />
+          <div className="modal-dialog modal-dialog-centered modal-lg" style={{zIndex: 1057}}>
             <div className="modal-content bg-dark text-light border">
               <div className="modal-header">
                 <h5 className="modal-title">Editar usuario #{edit.id}</h5>
                 <button type="button" className="btn-close btn-close-white" onClick={cerrarEditar} />
               </div>
 
-              <div className="modal-body">
+<div className="modal-body">
                 <div className="row g-2">
                   <div className="col-12 col-md-6">
                     <label className="form-label">Nombre</label>
@@ -268,6 +279,16 @@ export default function AdminUsuarios() {
                       className="form-control"
                       value={edit.nombre}
                       onChange={(e) => setEdit((p) => ({ ...p, nombre: e.target.value }))}
+                    />
+                  </div>
+
+                  <div className="col-12 col-md-6">
+                    <label className="form-label">Documento (DNI)</label>
+                    <input
+                      className="form-control"
+                      value={edit.documento}
+                      onChange={(e) => setEdit((p) => ({ ...p, documento: e.target.value }))}
+                      placeholder="Número de documento"
                     />
                   </div>
 
@@ -280,19 +301,19 @@ export default function AdminUsuarios() {
                     />
                   </div>
 
-                  <div className="col-12 col-md-4">
+                  <div className="col-12 col-md-3">
                     <label className="form-label">Rol</label>
                     <select
                       className="form-select"
-                      value={edit.rol}
+                      value={edit.rol === "ADMIN" ? "ADMIN" : "USUARIO"}
                       onChange={(e) => setEdit((p) => ({ ...p, rol: e.target.value }))}
                     >
-                      <option value="USER">USER</option>
+                      <option value="USUARIO">USUARIO</option>
                       <option value="ADMIN">ADMIN</option>
                     </select>
                   </div>
 
-                  <div className="col-12 col-md-4">
+                  <div className="col-12 col-md-3">
                     <label className="form-label">Activo</label>
                     <select
                       className="form-select"
@@ -304,7 +325,7 @@ export default function AdminUsuarios() {
                     </select>
                   </div>
 
-                  <div className="col-12 col-md-4">
+                  <div className="col-12 col-md-6">
                     <label className="form-label">Email verificado</label>
                     <select
                       className="form-select"
@@ -328,14 +349,14 @@ export default function AdminUsuarios() {
               </div>
             </div>
           </div>
-          <div className="modal-backdrop show" onClick={cerrarEditar} />
         </div>
       )}
 
       {/* Modal Reset Password */}
       {resetTarget && (
-        <div className="modal d-block" tabIndex="-1" role="dialog">
-          <div className="modal-dialog modal-dialog-centered" role="document">
+        <div className="modal d-block" style={{zIndex: 1056}} tabIndex="-1" role="dialog">
+          <div className="modal-backdrop show" style={{zIndex: 1055}} onClick={cerrarReset} />
+          <div className="modal-dialog modal-dialog-centered" style={{zIndex: 1057}}>
             <div className="modal-content bg-dark text-light border">
               <div className="modal-header">
                 <h5 className="modal-title">
@@ -357,10 +378,6 @@ export default function AdminUsuarios() {
                   onChange={(e) => setNewPass(e.target.value)}
                   placeholder="Escribe una contraseña segura"
                 />
-
-                <div className="text-secondary small mt-2">
-                  Endpoint: <code>POST /users/{`{user_id}`}/reset-password</code>
-                </div>
               </div>
 
               <div className="modal-footer">

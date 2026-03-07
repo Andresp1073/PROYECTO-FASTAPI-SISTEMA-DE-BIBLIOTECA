@@ -65,11 +65,6 @@ export default function VerifyEmail() {
                   Volver al Home
                 </Link>
               </div>
-
-              <div className="mt-3 small text-secondary">
-                Este frontend lee <code>?token=...</code> y llama al backend con{" "}
-                <code>POST /auth/verify-email</code>.
-              </div>
             </>
           )}
         </div>

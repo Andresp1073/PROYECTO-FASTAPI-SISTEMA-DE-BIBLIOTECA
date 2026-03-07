@@ -35,7 +35,7 @@ export const devolverPrestamo = async (prestamoId) => {
 /**
  * CREAR PRESTAMO (Usuario normal)
  * POST /prestamos
- * Normalmente: { libro_id: number }
+ * Normally: { libro_id: number }
  */
 export const crearPrestamo = async (payload) => {
   const res = await http.post("/prestamos", payload);
@@ -45,9 +45,29 @@ export const crearPrestamo = async (payload) => {
 /**
  * CREAR PRESTAMO (Admin)
  * POST /prestamos/admin
- * Normalmente: { user_id: number, libro_id: number }
+ * Normally: { user_id: number, libro_id: number }
  */
 export const crearPrestamoAdmin = async (payload) => {
   const res = await http.post("/prestamos/admin", payload);
+  return res.data;
+};
+
+/**
+ * BUSCAR USUARIOS (Admin)
+ * GET /users/buscar?documento=xxx or ?q=xxx
+ */
+export const buscarUsuarios = async (params) => {
+  const res = await http.get("/users/buscar", { params });
+  return res.data;
+};
+
+/**
+ * GET LIBROS (con filtro de estado)
+ * GET /libros?estado=DISPONIBLE
+ */
+export const getLibrosDisponibles = async (params = {}) => {
+  const res = await http.get("/libros", { params: { ...params, estado: "DISPONIBLE" }, paramsSerializer: p => {
+    return new URLSearchParams(p).toString();
+  }});
   return res.data;
 };

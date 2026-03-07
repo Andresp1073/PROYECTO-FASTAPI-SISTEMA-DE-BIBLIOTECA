@@ -26,6 +26,14 @@ class LibroUpdate(BaseModel):
     cover_url: str | None = Field(default=None, max_length=500)
 
 
+class CategoriaSimple(BaseModel):
+    id: int
+    nombre: str
+
+    class Config:
+        from_attributes = True
+
+
 class LibroRead(BaseModel):
     id: int
     titulo: str
@@ -36,6 +44,7 @@ class LibroRead(BaseModel):
     categoria_id: int | None
     estado: LibroEstado
     created_at: datetime
+    categoria: CategoriaSimple | None = None
 
     class Config:
         from_attributes = True

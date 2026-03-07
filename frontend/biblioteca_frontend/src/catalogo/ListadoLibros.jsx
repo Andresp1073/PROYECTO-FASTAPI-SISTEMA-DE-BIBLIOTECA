@@ -6,8 +6,6 @@ import Alerta from "../components/Alerta.jsx";
 import { getLibros } from "../api/libros.js";
 import { getCategorias } from "../api/categorias.js";
 
-const API_BASE = "http://127.0.0.1:8000";
-
 function parseFastApiError(err) {
   const data = err?.response?.data;
 
@@ -39,8 +37,8 @@ function resolveCoverUrl(coverUrl) {
   const s = String(coverUrl).trim();
   if (!s) return "";
   if (s.startsWith("http://") || s.startsWith("https://")) return s;
-  if (s.startsWith("/")) return `${API_BASE}${s}`;
-  return `${API_BASE}/${s}`;
+  if (s.startsWith("/")) return `http://localhost:8000${s}`;
+  return s;
 }
 
 function LibroCover({ coverUrl, titulo }) {
@@ -88,11 +86,14 @@ export default function ListadoLibros() {
   const [q, setQ] = useState("");
   const [categoriaId, setCategoriaId] = useState("");
 
-  const cargar = async () => {
+  const cargar = async (busqueda = "", categoria = "") => {
     setError("");
     setCargando(true);
     try {
-      const [l, c] = await Promise.all([getLibros(), getCategorias()]);
+      const [l, c] = await Promise.all([
+        getLibros({ q: busqueda || undefined, categoria_id: categoria || undefined }),
+        getCategorias()
+      ]);
       setLibros(normalizarListado(l));
       setCategorias(normalizarListado(c));
     } catch (err) {
@@ -102,28 +103,21 @@ export default function ListadoLibros() {
     }
   };
 
+  // Cargar inicial
   useEffect(() => {
     cargar();
   }, []);
 
-  const filtrados = useMemo(() => {
-    const text = q.trim().toLowerCase();
+  // Búsqueda automática con debounce
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      cargar(q, categoriaId);
+    }, 300);
+    return () => clearTimeout(timeout);
+  }, [q, categoriaId]);
 
-    return libros.filter((b) => {
-      const titulo = String(b.titulo ?? b.title ?? "").toLowerCase();
-      const autor = String(b.autor ?? b.author ?? "").toLowerCase();
-
-      const matchText = !text || titulo.includes(text) || autor.includes(text);
-
-      const catLibro = String(
-        b.categoria_id ?? b.categoriaId ?? b.categoria?.id ?? ""
-      );
-
-      const matchCategoria = !categoriaId || catLibro === String(categoriaId);
-
-      return matchText && matchCategoria;
-    });
-  }, [libros, q, categoriaId]);
+  // Mostrar todos los libros cargados (la búsqueda ya se hace en el backend)
+  const filtrados = libros;
 
   return (
     <div className="row g-4">
@@ -146,24 +140,27 @@ export default function ListadoLibros() {
           </div>
 
           <div className="row g-3 mt-1">
-            <div className="col-12 col-md-7">
+            <div className="col-12 col-md-6">
               <label className="form-label">Buscar (título o autor)</label>
               <input
                 className="form-control"
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                placeholder="Ej: Clean Code, García Márquez..."
+                placeholder="Escribe para buscar..."
               />
             </div>
 
-            <div className="col-12 col-md-5">
-              <label className="form-label">Categoría</label>
+            <div className="col-12 col-md-6">
+              <label className="form-label">
+                Filtrar por categoría 
+                <span className="text-muted ms-1 small">({categorias.length} disponibles)</span>
+              </label>
               <select
                 className="form-select"
                 value={categoriaId}
                 onChange={(e) => setCategoriaId(e.target.value)}
               >
-                <option value="">Todas</option>
+                <option value="">Todas las categorías</option>
                 {categorias.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.nombre}

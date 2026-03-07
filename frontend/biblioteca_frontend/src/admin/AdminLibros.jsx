@@ -1,12 +1,13 @@
 // src/admin/AdminLibros.jsx
 import { useEffect, useMemo, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { getLibros, crearLibro, actualizarLibro, eliminarLibro } from "../api/libros.js";
 import { getCategorias } from "../api/categorias.js";
 import { uploadCover } from "../api/uploads.js";
 import Alerta from "../components/Alerta.jsx";
 import Spinner from "../components/Spinner.jsx";
 
-const API_BASE = "http://127.0.0.1:8000";
+const API_BASE = "http://localhost:8000";
 
 function parseFastApiError(err) {
   const data = err?.response?.data;
@@ -34,6 +35,7 @@ function resolveCoverUrl(coverUrl) {
 }
 
 export default function AdminLibros() {
+  const navigate = useNavigate();
   const [cargando, setCargando] = useState(true);
   const [items, setItems] = useState([]);
   const [cats, setCats] = useState([]);
@@ -258,11 +260,16 @@ export default function AdminLibros() {
 
   return (
     <div className="container py-4">
-      <div className="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
-        <h3 className="m-0">
-          <i className="bi bi-book me-2" />
-          Admin Libros
-        </h3>
+<div className="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+        <div className="d-flex align-items-center gap-2">
+          <button className="btn btn-outline-light btn-sm" onClick={() => navigate("/admin")}>
+            <i className="bi bi-arrow-left" />
+          </button>
+          <h3 className="m-0">
+            <i className="bi bi-book me-2" />
+            Admin Libros
+          </h3>
+        </div>
 
         <div className="d-flex gap-2">
           <input
@@ -334,17 +341,13 @@ export default function AdminLibros() {
               )}
 
               {form.cover_url && (
-                <div className="mt-2 d-flex align-items-start gap-3">
+                <div className="mt-2">
                   <img
                     src={previewCrear}
                     alt="Portada"
                     className="border rounded"
                     style={{ width: 80, height: 110, objectFit: "cover" }}
-                    onError={() => setError(`No se pudo cargar preview. cover_url="${form.cover_url}"`)}
                   />
-                  <div className="small text-secondary">
-                    cover_url: <code>{String(form.cover_url)}</code>
-                  </div>
                 </div>
               )}
 
@@ -356,13 +359,6 @@ export default function AdminLibros() {
                 Crear
               </button>
             </form>
-
-            <div className="text-secondary small mt-3">
-              Endpoints: <code>GET /libros</code> — <code>POST /libros</code> —{" "}
-              <code>PUT /libros/{`{id}`}</code> — <code>DELETE /libros/{`{id}`}</code>
-              <br />
-              Upload: <code>POST /uploads/covers</code>
-            </div>
           </div>
         </div>
 
@@ -542,17 +538,13 @@ export default function AdminLibros() {
                       )}
 
                       {edit.cover_url && (
-                        <div className="mt-2 d-flex align-items-start gap-3">
+                        <div className="mt-2">
                           <img
                             src={previewEditar}
                             alt="Portada"
                             className="border rounded"
                             style={{ width: 80, height: 110, objectFit: "cover" }}
-                            onError={() => setError(`No se pudo cargar preview. cover_url="${edit.cover_url}"`)}
                           />
-                          <div className="small text-secondary">
-                            cover_url: <code>{String(edit.cover_url)}</code>
-                          </div>
                         </div>
                       )}
                     </div>

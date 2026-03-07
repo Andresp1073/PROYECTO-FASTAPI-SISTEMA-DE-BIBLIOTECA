@@ -1,8 +1,9 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from sqlalchemy import or_
 from fastapi import HTTPException, status
 
 from models.libro import Libro, LibroEstado
+from models.categoria import Categoria
 from schemas.libro_schemas import LibroCreate, LibroUpdate
 
 
@@ -41,8 +42,7 @@ def list_libros(
     categoria_id: int | None = None,
     estado: LibroEstado | None = None,
 ) -> list[Libro]:
-    # [NUEVO]
-    query = db.query(Libro)
+    query = db.query(Libro).options(joinedload(Libro.categoria))
 
     if q:
         like = f"%{q.strip()}%"

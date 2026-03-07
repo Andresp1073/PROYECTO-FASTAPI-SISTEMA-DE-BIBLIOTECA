@@ -1,23 +1,10 @@
-// src/admin/AdminCategorias.jsx
-import { useEffect, useMemo, useState } from "react";
-import {
-  getCategorias,
-  crearCategoria,
-  actualizarCategoria,
-  eliminarCategoria,
-} from "../api/categorias.js";
-import Alerta from "../components/Alerta.jsx";
+// src/catalogo/Categorias.jsx - Solo lectura para usuarios normales
+import { useEffect, useState, useMemo } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { getCategorias } from "../api/categorias.js";
+import { getLibros } from "../api/libros.js";
 import Spinner from "../components/Spinner.jsx";
-
-function parseFastApiError(err) {
-  const data = err?.response?.data;
-  if (Array.isArray(data?.detail)) {
-    return data.detail
-      .map((e) => `${Array.isArray(e.loc) ? e.loc.join(".") : "body"}: ${e.msg}`)
-      .join(" | ");
-  }
-  return data?.detail || data?.message || `Error ${err?.response?.status || ""}`.trim() || "Ocurrió un error.";
-}
+import Alerta from "../components/Alerta.jsx";
 
 function normalizarListado(data) {
   if (Array.isArray(data)) return data;
@@ -25,107 +12,132 @@ function normalizarListado(data) {
   return [];
 }
 
-export default function AdminCategorias() {
-  const [items, setItems] = useState([]);
+export default function Categorias() {
+  const [categorias, setCategorias] = useState([]);
+  const [libros, setLibros] = useState([]);
   const [cargando, setCargando] = useState(true);
+  const [cargandoLibros, setCargandoLibros] = useState(false);
   const [error, setError] = useState("");
-  const [ok, setOk] = useState("");
-
-  const [nombre, setNombre] = useState("");
-  const [editId, setEditId] = useState(null);
-  const [editNombre, setEditNombre] = useState("");
-  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
-
-  const sorted = useMemo(() => {
-    return [...items].sort((a, b) => String(a.nombre).localeCompare(String(b.nombre)));
-  }, [items]);
+  
+  const [filtro, setFiltro] = useState("");
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState(null);
 
   const cargar = async () => {
     setCargando(true);
     setError("");
-    setOk("");
     try {
       const data = await getCategorias();
-      setItems(normalizarListado(data));
+      setCategorias(normalizarListado(data));
     } catch (err) {
-      setError(parseFastApiError(err));
+      const data = err?.response?.data;
+      if (Array.isArray(data?.detail)) {
+        setError(data.detail.map((e) => `${e.msg}`).join(" | "));
+      } else {
+        setError(data?.detail || data?.message || "Error al cargar categorías");
+      }
     } finally {
       setCargando(false);
     }
+  };
+
+  const cargarLibrosPorCategoria = async (categoriaId, categoriaNombre) => {
+    setCargandoLibros(true);
+    setCategoriaSeleccionada({ id: categoriaId, nombre: categoriaNombre });
+    setLibros([]);
+    try {
+      const data = await getLibros({ categoria_id: categoriaId });
+      setLibros(normalizarListado(data));
+    } catch (err) {
+      setError("Error al cargar libros de la categoría");
+    } finally {
+      setCargandoLibros(false);
+    }
+  };
+
+  const volverCategorias = () => {
+    setCategoriaSeleccionada(null);
+    setLibros([]);
   };
 
   useEffect(() => {
     cargar();
   }, []);
 
-  const onCrear = async (e) => {
-    e.preventDefault();
-    setError("");
-    setOk("");
-    try {
-      const payload = { nombre: nombre.trim() };
-      if (!payload.nombre) {
-        setError("El nombre es obligatorio.");
-        return;
-      }
-      await crearCategoria(payload);
-      setNombre("");
-      setOk("Categoría creada ✅");
-      cargar();
-    } catch (err) {
-      setError(parseFastApiError(err));
-    }
-  };
+  const categoriasFiltradas = useMemo(() => {
+    const term = filtro.trim().toLowerCase();
+    if (!term) return categorias;
+    return categorias.filter(c => 
+      c.nombre?.toLowerCase().includes(term) ||
+      c.descripcion?.toLowerCase().includes(term)
+    );
+  }, [categorias, filtro]);
 
-  const abrirEditar = (c) => {
-    setError("");
-    setOk("");
-    setEditId(c.id);
-    setEditNombre(c.nombre ?? "");
-  };
+  const sorted = [...categoriasFiltradas].sort((a, b) => String(a.nombre).localeCompare(String(b.nombre)));
 
-  const cancelarEditar = () => {
-    setEditId(null);
-    setEditNombre("");
-  };
+  // Vista de libros por categoría
+  if (categoriaSeleccionada) {
+    return (
+      <div className="container py-4">
+        <div className="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
+          <h3 className="m-0">
+            <i className="bi bi-book me-2" />
+            Libros en: {categoriaSeleccionada.nombre}
+          </h3>
+          <button className="btn btn-outline-light" onClick={volverCategorias}>
+            <i className="bi bi-arrow-left me-2" />
+            Volver a Categorías
+          </button>
+        </div>
 
-  const onGuardarEdicion = async () => {
-    setError("");
-    setOk("");
-    try {
-      const payload = { nombre: editNombre.trim() };
-      if (!payload.nombre) {
-        setError("El nombre es obligatorio.");
-        return;
-      }
-      await actualizarCategoria(editId, payload);
-      setOk("Categoría actualizada ✅");
-      cancelarEditar();
-      cargar();
-    } catch (err) {
-      setError(parseFastApiError(err));
-    }
-  };
+        <Alerta mensaje={error} />
 
-  const onEliminar = async () => {
-    setError("");
-    setOk("");
-    try {
-      await eliminarCategoria(confirmDeleteId);
-      setOk("Categoría eliminada ✅");
-      setConfirmDeleteId(null);
-      cargar();
-    } catch (err) {
-      setError(parseFastApiError(err));
-    }
-  };
+        <div className="p-4 border rounded-3 bg-body-tertiary">
+          {cargandoLibros ? (
+            <Spinner texto="Cargando libros..." />
+          ) : libros.length === 0 ? (
+            <div className="text-center text-secondary py-4">
+              No hay libros en esta categoría
+            </div>
+          ) : (
+            <div className="row g-3">
+              {libros.map((libro) => (
+                <div key={libro.id} className="col-12 col-sm-6 col-md-4 col-lg-3">
+                  <div className="p-3 border rounded-3 bg-dark h-100 d-flex flex-column">
+                    {libro.cover_url && (
+                      <div className="mb-2">
+                        <img 
+                          src={libro.cover_url.startsWith("http") ? libro.cover_url : `http://localhost:8000${libro.cover_url}`}
+                          alt={libro.titulo}
+                          className="rounded"
+                          style={{ width: "100%", height: 150, objectFit: "cover" }}
+                          onError={(e) => e.target.style.display = 'none'}
+                        />
+                      </div>
+                    )}
+                    <div className="fw-semibold">{libro.titulo}</div>
+                    <div className="text-secondary small">{libro.autor}</div>
+                    <div className="mt-auto pt-2">
+                      <Link to={`/libros/${libro.id}`} className="btn btn-sm btn-light w-100">
+                        Ver detalles
+                      </Link>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
+  // Vista de categorías
   return (
     <div className="container py-4">
       <div className="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
         <h3 className="m-0">
           <i className="bi bi-tags me-2" />
-          Admin Categorías
+          Categorías
         </h3>
 
         <button className="btn btn-outline-light" onClick={cargar} disabled={cargando}>
@@ -134,146 +146,55 @@ export default function AdminCategorias() {
         </button>
       </div>
 
-      <Alerta mensaje={error} />
-      <Alerta type="success" mensaje={ok} />
-
-      <div className="row g-3">
-        <div className="col-12 col-lg-4">
-          <div className="p-4 border rounded-3 bg-body-tertiary">
-            <div className="h5 mb-3">Crear categoría</div>
-            <form onSubmit={onCrear}>
-              <label className="form-label">Nombre</label>
-              <input
-                className="form-control"
-                value={nombre}
-                onChange={(e) => setNombre(e.target.value)}
-                placeholder="Ej: Ciencia Ficción"
-              />
-              <button className="btn btn-light mt-3 w-100" type="submit">
-                <i className="bi bi-plus-circle me-2" />
-                Crear
-              </button>
-            </form>
-
-            <div className="text-secondary small mt-3">
-              Endpoints: <code>GET /categorias</code> — <code>POST /categorias</code> —{" "}
-              <code>PUT /categorias/{`{id}`}</code> — <code>DELETE /categorias/{`{id}`}</code>
-            </div>
-          </div>
-        </div>
-
-        <div className="col-12 col-lg-8">
-          <div className="p-4 border rounded-3 bg-body-tertiary">
-            <div className="h5 mb-3">Listado</div>
-
-            {cargando ? (
-              <Spinner texto="Cargando..." />
-            ) : (
-              <div className="table-responsive">
-                <table className="table table-dark table-hover align-middle">
-                  <thead>
-                    <tr>
-                      <th style={{ width: 90 }}>ID</th>
-                      <th>Nombre</th>
-                      <th style={{ width: 200 }} className="text-end"></th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sorted.map((c) => (
-                      <tr key={c.id}>
-                        <td className="text-secondary">{c.id}</td>
-                        <td className="fw-semibold">{c.nombre}</td>
-                        <td className="text-end">
-                          <button className="btn btn-sm btn-outline-info me-2" onClick={() => abrirEditar(c)}>
-                            <i className="bi bi-pencil me-1" />
-                            Editar
-                          </button>
-                          <button
-                            className="btn btn-sm btn-outline-danger"
-                            onClick={() => setConfirmDeleteId(c.id)}
-                          >
-                            <i className="bi bi-trash me-1" />
-                            Eliminar
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-
-                    {sorted.length === 0 && (
-                      <tr>
-                        <td colSpan="3" className="text-center text-secondary py-4">
-                          Sin categorías
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </div>
+      <div className="mb-3">
+        <input
+          type="text"
+          className="form-control"
+          placeholder="Buscar categorías..."
+          value={filtro}
+          onChange={(e) => setFiltro(e.target.value)}
+        />
       </div>
 
-      {/* Modal Editar */}
-      {editId != null && (
-        <div className="modal d-block" tabIndex="-1" role="dialog">
-          <div className="modal-dialog modal-dialog-centered" role="document">
-            <div className="modal-content bg-dark text-light border">
-              <div className="modal-header">
-                <h5 className="modal-title">Editar categoría #{editId}</h5>
-                <button type="button" className="btn-close btn-close-white" onClick={cancelarEditar} />
-              </div>
-              <div className="modal-body">
-                <label className="form-label">Nombre</label>
-                <input
-                  className="form-control"
-                  value={editNombre}
-                  onChange={(e) => setEditNombre(e.target.value)}
-                />
-              </div>
-              <div className="modal-footer">
-                <button className="btn btn-outline-light" onClick={cancelarEditar}>
-                  Cancelar
-                </button>
-                <button className="btn btn-light" onClick={onGuardarEdicion}>
-                  Guardar
-                </button>
-              </div>
-            </div>
-          </div>
-          <div className="modal-backdrop show" onClick={cancelarEditar} />
-        </div>
-      )}
+      <Alerta mensaje={error} />
 
-      {/* Modal Eliminar */}
-      {confirmDeleteId != null && (
-        <div className="modal d-block" tabIndex="-1" role="dialog">
-          <div className="modal-dialog modal-dialog-centered" role="document">
-            <div className="modal-content bg-dark text-light border">
-              <div className="modal-header">
-                <h5 className="modal-title">Eliminar categoría</h5>
-                <button
-                  type="button"
-                  className="btn-close btn-close-white"
-                  onClick={() => setConfirmDeleteId(null)}
-                />
+      <div className="p-4 border rounded-3 bg-body-tertiary">
+        {cargando ? (
+          <Spinner texto="Cargando..." />
+        ) : (
+          <div className="row g-3">
+            {sorted.length === 0 ? (
+              <div className="col-12 text-center text-secondary py-4">
+                {filtro ? "No se encontraron categorías" : "Sin categorías"}
               </div>
-              <div className="modal-body">
-                ¿Seguro que deseas eliminar la categoría #{confirmDeleteId}?
-              </div>
-              <div className="modal-footer">
-                <button className="btn btn-outline-light" onClick={() => setConfirmDeleteId(null)}>
-                  Cancelar
-                </button>
-                <button className="btn btn-danger" onClick={onEliminar}>
-                  Eliminar
-                </button>
-              </div>
-            </div>
+            ) : (
+              sorted.map((c) => (
+                <div key={c.id} className="col-12 col-md-6 col-lg-4">
+                  <div 
+                    className="p-3 border rounded-3 bg-dark h-100 cursor-pointer categoria-card"
+                    onClick={() => cargarLibrosPorCategoria(c.id, c.nombre)}
+                    style={{ cursor: "pointer" }}
+                  >
+                    <div className="d-flex align-items-center">
+                      <i className="bi bi-tag me-2 text-primary" />
+                      <span className="fw-semibold">{c.nombre}</span>
+                    </div>
+                    {c.descripcion && (
+                      <div className="text-secondary small mt-2">
+                        {c.descripcion}
+                      </div>
+                    )}
+                    <div className="mt-2 text-primary small">
+                      <i className="bi bi-arrow-right me-1" />
+                      Ver libros
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
-          <div className="modal-backdrop show" onClick={() => setConfirmDeleteId(null)} />
-        </div>
-      )}
+        )}
+      </div>
     </div>
   );
 }

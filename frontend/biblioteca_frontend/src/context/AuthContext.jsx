@@ -42,10 +42,23 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
+  const normalizeUser = (u) => ({
+    ...u,
+    rol: u?.rol ?? u?.role,
+    role: u?.role ?? u?.rol,
+    nombre: u?.nombre ?? u?.name,
+    name: u?.name ?? u?.nombre,
+    is_active: u?.is_active ?? u?.active,
+    active: u?.active ?? u?.is_active,
+    is_email_verified: u?.is_email_verified ?? u?.email_verified,
+    email_verified: u?.email_verified ?? u?.is_email_verified,
+  });
+
   const loadMe = async () => {
     const res = await http.get("/auth/me");
-    setUser(res.data);
-    return res.data;
+    const normalized = normalizeUser(res.data);
+    setUser(normalized);
+    return normalized;
   };
 
   const refresh = async () => {

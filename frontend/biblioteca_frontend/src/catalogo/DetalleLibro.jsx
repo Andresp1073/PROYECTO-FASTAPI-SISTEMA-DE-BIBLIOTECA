@@ -3,10 +3,11 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { getLibro } from "../api/libros.js";
 import { getCategorias } from "../api/categorias.js";
+import { solicitarPrestamo, getMisSolicitudes } from "../api/solicitudes.js";
 import Alerta from "../components/Alerta.jsx";
 import Spinner from "../components/Spinner.jsx";
 
-const API_BASE = "http://127.0.0.1:8000";
+const API_BASE = "http://localhost:8000";
 
 function parseFastApiError(err) {
   const data = err?.response?.data;
@@ -47,6 +48,8 @@ export default function DetalleLibro() {
 
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
+  const [ok, setOk] = useState("");
+  const [solicitando, setSolicitando] = useState(false);
 
   const catNombrePorId = useMemo(() => {
     const m = new Map();
@@ -71,6 +74,20 @@ export default function DetalleLibro() {
       setLibro(null);
     } finally {
       setCargando(false);
+    }
+  };
+
+  const handleSolicitar = async () => {
+    setError("");
+    setOk("");
+    setSolicitando(true);
+    try {
+      await solicitarPrestamo(libro.id);
+      setOk("Solicitud enviada. Te notificaremos cuando sea aprobada.");
+    } catch (err) {
+      setError(parseFastApiError(err));
+    } finally {
+      setSolicitando(false);
     }
   };
 
@@ -161,7 +178,19 @@ export default function DetalleLibro() {
               <span className={`badge ${badgeClass} align-self-start`}>
                 {estado}
               </span>
+              
+              {estado === "DISPONIBLE" && (
+                <button
+                  className="btn btn-success btn-sm"
+                  onClick={handleSolicitar}
+                  disabled={solicitando}
+                >
+                  {solicitando ? "Enviando..." : "Solicitar Préstamo"}
+                </button>
+              )}
             </div>
+
+            <Alerta mensaje={ok} type="success" />
 
             {coverSrc ? (
               <div className="mt-4">
@@ -181,27 +210,12 @@ export default function DetalleLibro() {
                       height: "100%",
                       objectFit: "cover",
                     }}
-                    onError={() =>
-                      setError(
-                        `No se pudo cargar la portada. cover_url="${libro.cover_url}" | src="${coverSrc}"`
-                      )
-                    }
                   />
-                </div>
-
-                <div className="small text-secondary mt-2">
-                  <div>
-                    cover_url:{" "}
-                    <code>{String(libro.cover_url || "")}</code>
-                  </div>
-                  <div>
-                    src final: <code>{coverSrc}</code>
-                  </div>
                 </div>
               </div>
             ) : (
               <div className="mt-4 text-secondary">
-                No hay portada (cover_url vacío).
+                No hay portada disponible.
               </div>
             )}
 
@@ -238,12 +252,6 @@ export default function DetalleLibro() {
                   )}
                 </div>
               </div>
-            </div>
-
-            <hr className="my-4" />
-
-            <div className="small text-secondary">
-              Endpoint: <code>GET /libros/{`{libro_id}`}</code>
             </div>
           </div>
         )}
