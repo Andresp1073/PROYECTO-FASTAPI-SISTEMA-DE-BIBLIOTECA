@@ -1,6 +1,7 @@
 // [MODIFICADO]
 import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { useTheme } from "../context/ThemeContext.jsx";
 import Spinner from "../components/Spinner.jsx";
 import Alerta from "../components/Alerta.jsx";
 import { getLibros } from "../api/libros.js";
@@ -77,6 +78,7 @@ function LibroCover({ coverUrl, titulo }) {
 }
 
 export default function ListadoLibros() {
+  const { theme } = useTheme();
   const [libros, setLibros] = useState([]);
   const [categorias, setCategorias] = useState([]);
 
@@ -130,7 +132,7 @@ export default function ListadoLibros() {
             </h1>
 
             <button
-              className="btn btn-sm btn-outline-light"
+              className={`btn btn-sm ${theme === "dark" ? "btn-outline-light" : "btn-outline-dark"}`}
               onClick={cargar}
               disabled={cargando}
             >

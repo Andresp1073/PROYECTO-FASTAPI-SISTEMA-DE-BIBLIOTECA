@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import { useTheme } from "../context/ThemeContext.jsx";
 import { getMisNotificaciones, marcarNotificacionLeida, marcarTodasLeidas } from "../api/solicitudes.js";
 import Alerta from "../components/Alerta.jsx";
 import Spinner from "../components/Spinner.jsx";
@@ -41,6 +42,7 @@ function getIconoTipo(tipo) {
 }
 
 export default function MisNotificaciones() {
+  const { theme } = useTheme();
   const [items, setItems] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
@@ -95,12 +97,19 @@ export default function MisNotificaciones() {
 
         <div className="d-flex gap-2">
           {noLeidas > 0 && (
-            <button className="btn btn-outline-light btn-sm" onClick={handleMarcarTodasLeidas}>
+            <button
+              className={`btn ${theme === "dark" ? "btn-outline-light" : "btn-outline-dark"} btn-sm`}
+              onClick={handleMarcarTodasLeidas}
+            >
               <i className="bi bi-check-all me-1" />
               Marcar todas como leídas
             </button>
           )}
-          <button className="btn btn-outline-light btn-sm" onClick={cargar} disabled={cargando}>
+          <button
+            className={`btn ${theme === "dark" ? "btn-outline-light" : "btn-outline-dark"} btn-sm`}
+            onClick={cargar}
+            disabled={cargando}
+          >
             <i className="bi bi-arrow-clockwise me-1" />
             Recargar
           </button>

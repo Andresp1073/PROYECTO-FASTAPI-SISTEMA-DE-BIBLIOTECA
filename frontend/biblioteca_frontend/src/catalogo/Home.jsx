@@ -2,7 +2,7 @@
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext.jsx";
 
-export default function Home({ showAdminLink = true, showActions = true }) {
+export default function Home() {
   const { isAuthenticated, user, isAdmin } = useAuth();
 
   return (
@@ -66,24 +66,7 @@ export default function Home({ showAdminLink = true, showActions = true }) {
           )}
         </div>
 
-        {isAuthenticated && showActions && (
-          <div className="d-flex gap-2 flex-wrap justify-content-center">
-            <Link className="btn btn-outline-dark" to="/categorias">
-              <i className="bi bi-tags me-1"></i> Categorías
-            </Link>
-            <Link className="btn btn-outline-dark" to="/libros">
-              <i className="bi bi-journals me-1"></i> Libros
-            </Link>
-            <Link className="btn btn-outline-dark" to="/prestamos">
-              <i className="bi bi-journal-check me-1"></i> Mis Préstamos
-            </Link>
-            {isAdmin && showAdminLink && (
-              <Link className="btn btn-outline-warning" to="/admin">
-                <i className="bi bi-shield-lock me-1"></i> Admin
-              </Link>
-            )}
-          </div>
-        )}
+
       </div>
 
       <div className="text-center py-3">

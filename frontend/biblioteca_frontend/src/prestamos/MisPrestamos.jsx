@@ -64,7 +64,7 @@ export default function MisPrestamos() {
         </h1>
 
         <div className="d-flex gap-2">
-          <button className="btn btn-sm btn-outline-dark" onClick={cargar} disabled={cargando}>
+          <button className="btn btn-sm btn-outline-secondary" onClick={cargar} disabled={cargando}>
             <i className="bi bi-arrow-clockwise me-1"></i>
             Recargar
           </button>

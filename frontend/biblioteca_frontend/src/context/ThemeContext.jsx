@@ -10,7 +10,7 @@ export function ThemeProvider({ children }) {
   useEffect(() => {
     document.documentElement.setAttribute("data-bs-theme", theme);
 
-    // Keep the body background/text consistent with the current theme
+    // Ajustar el <body> para que el texto y el fondo sean legibles
     document.body.classList.toggle("bg-dark", theme === "dark");
     document.body.classList.toggle("text-light", theme === "dark");
     document.body.classList.toggle("bg-light", theme === "light");

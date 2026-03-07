@@ -1,6 +1,7 @@
 // src/catalogo/Categorias.jsx - Solo lectura para usuarios normales
 import { useEffect, useState, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useTheme } from "../context/ThemeContext.jsx";
 import { getCategorias } from "../api/categorias.js";
 import { getLibros } from "../api/libros.js";
 import Spinner from "../components/Spinner.jsx";
@@ -13,6 +14,7 @@ function normalizarListado(data) {
 }
 
 export default function Categorias() {
+  const { theme } = useTheme();
   const [categorias, setCategorias] = useState([]);
   const [libros, setLibros] = useState([]);
   const [cargando, setCargando] = useState(true);
@@ -83,7 +85,10 @@ export default function Categorias() {
             <i className="bi bi-book me-2" />
             Libros en: {categoriaSeleccionada.nombre}
           </h3>
-          <button className="btn btn-outline-light" onClick={volverCategorias}>
+          <button
+            className={`btn ${theme === "dark" ? "btn-outline-light" : "btn-outline-dark"}`}
+            onClick={volverCategorias}
+          >
             <i className="bi bi-arrow-left me-2" />
             Volver a Categorías
           </button>
@@ -102,7 +107,7 @@ export default function Categorias() {
             <div className="row g-3">
               {libros.map((libro) => (
                 <div key={libro.id} className="col-12 col-sm-6 col-md-4 col-lg-3">
-                  <div className="p-3 border rounded-3 bg-dark h-100 d-flex flex-column">
+                  <div className={`p-3 border rounded-3 bg-dark h-100 d-flex flex-column ${theme === "dark" ? "text-light" : "text-dark"}`}>
                     {libro.cover_url && (
                       <div className="mb-2">
                         <img 
@@ -140,7 +145,11 @@ export default function Categorias() {
           Categorías
         </h3>
 
-        <button className="btn btn-outline-light" onClick={cargar} disabled={cargando}>
+        <button
+          className={`btn ${theme === "dark" ? "btn-outline-light" : "btn-outline-dark"}`}
+          onClick={cargar}
+          disabled={cargando}
+        >
           <i className="bi bi-arrow-clockwise me-2" />
           Recargar
         </button>
@@ -171,7 +180,7 @@ export default function Categorias() {
               sorted.map((c) => (
                 <div key={c.id} className="col-12 col-md-6 col-lg-4">
                   <div 
-                    className="p-3 border rounded-3 bg-dark h-100 cursor-pointer categoria-card"
+                    className={`p-3 border rounded-3 bg-dark h-100 cursor-pointer categoria-card ${theme === "dark" ? "text-light" : "text-dark"}`}
                     onClick={() => cargarLibrosPorCategoria(c.id, c.nombre)}
                     style={{ cursor: "pointer" }}
                   >

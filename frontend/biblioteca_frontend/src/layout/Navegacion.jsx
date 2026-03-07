@@ -50,7 +50,7 @@ export default function Navegacion() {
   return (
     <nav className="navbar navbar-expand-lg navbar-dark bg-primary border-bottom">
       <div className="container">
-        <Link className="navbar-brand fw-semibold" to={esAdmin ? "/admin" : "/"}>
+        <Link className="navbar-brand fw-semibold" to="/">
           <i className="bi bi-journal-bookmark-fill me-2" />
           Biblioteca
         </Link>
@@ -157,6 +157,7 @@ export default function Navegacion() {
                 </li>
               </>
             )}
+
           </ul>
 
           <div className="d-flex align-items-center gap-2">

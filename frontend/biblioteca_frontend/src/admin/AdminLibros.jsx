@@ -281,7 +281,7 @@ export default function AdminLibros() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
-          <button className={`btn ${theme === "dark" ? "btn-outline-light" : "btn-outline-dark"}`} onClick={cargar} disabled={cargando}>
+          <button className="btn btn-outline-secondary" onClick={cargar} disabled={cargando}>
             <i className="bi bi-arrow-clockwise me-2" />
             Recargar
           </button>

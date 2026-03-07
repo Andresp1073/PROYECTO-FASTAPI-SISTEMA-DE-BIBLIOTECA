@@ -1,6 +1,7 @@
 // src/catalogo/DetalleLibro.jsx
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { useTheme } from "../context/ThemeContext.jsx";
 import { getLibro } from "../api/libros.js";
 import { getCategorias } from "../api/categorias.js";
 import { solicitarPrestamo, getMisSolicitudes } from "../api/solicitudes.js";
@@ -41,6 +42,7 @@ function resolveCoverUrl(coverUrl) {
 }
 
 export default function DetalleLibro() {
+  const { theme } = useTheme();
   const { id } = useParams();
 
   const [libro, setLibro] = useState(null);
@@ -130,7 +132,7 @@ export default function DetalleLibro() {
 
           <div className="d-flex gap-2">
             <button
-              className="btn btn-sm btn-outline-light"
+              className={`btn btn-sm ${theme === "dark" ? "btn-outline-light" : "btn-outline-dark"}`}
               onClick={cargar}
               disabled={cargando}
             >
