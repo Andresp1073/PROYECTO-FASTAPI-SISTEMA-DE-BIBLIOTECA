@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getUsers, updateUser, resetUserPassword } from "../api/users.js";
+import { useTheme } from "../context/ThemeContext.jsx";
 import Alerta from "../components/Alerta.jsx";
 import Spinner from "../components/Spinner.jsx";
 
@@ -28,6 +29,7 @@ function normalizarListado(data) {
 
 export default function AdminUsuarios() {
   const navigate = useNavigate();
+  const { theme } = useTheme();
   const [cargando, setCargando] = useState(true);
   const [items, setItems] = useState([]);
   const [error, setError] = useState("");
@@ -152,7 +154,7 @@ export default function AdminUsuarios() {
     <div className="container py-4">
 <div className="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
         <div className="d-flex align-items-center gap-2">
-          <button className="btn btn-outline-light btn-sm" onClick={() => navigate("/admin")}>
+          <button className={`btn ${theme === "dark" ? "btn-outline-light" : "btn-outline-dark"} btn-sm`} onClick={() => navigate("/admin")}>
             <i className="bi bi-arrow-left" />
           </button>
           <h3 className="m-0">
@@ -170,7 +172,7 @@ export default function AdminUsuarios() {
             onChange={(e) => setQ(e.target.value)}
           />
 
-          <button className="btn btn-outline-light" onClick={cargar} disabled={cargando}>
+          <button className={`btn ${theme === "dark" ? "btn-outline-light" : "btn-outline-dark"}`} onClick={cargar} disabled={cargando}>
             <i className="bi bi-arrow-clockwise me-2" />
             Recargar
           </button>
@@ -185,7 +187,7 @@ export default function AdminUsuarios() {
           <Spinner texto="Cargando..." />
         ) : (
           <div className="table-responsive">
-            <table className="table table-dark table-hover align-middle">
+            <table className={`table ${theme === "dark" ? "table-dark" : "table-striped"} table-hover align-middle`}>
 <thead>
                 <tr>
                   <th style={{ width: 90 }}>ID</th>
@@ -340,7 +342,7 @@ export default function AdminUsuarios() {
               </div>
 
               <div className="modal-footer">
-                <button className="btn btn-outline-light" onClick={cerrarEditar}>
+                <button className={`btn ${theme === "dark" ? "btn-outline-light" : "btn-outline-secondary"}`} onClick={cerrarEditar}>
                   Cancelar
                 </button>
                 <button className="btn btn-light" onClick={guardarEdicion}>
@@ -381,7 +383,7 @@ export default function AdminUsuarios() {
               </div>
 
               <div className="modal-footer">
-                <button className="btn btn-outline-light" onClick={cerrarReset}>
+                <button className={`btn ${theme === "dark" ? "btn-outline-light" : "btn-outline-secondary"}`} onClick={cerrarReset}>
                   Cancelar
                 </button>
                 <button className="btn btn-warning" onClick={doReset}>

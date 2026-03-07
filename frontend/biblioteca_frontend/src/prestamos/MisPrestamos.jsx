@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { getMisPrestamos } from "../api/prestamos.js";
+import { useTheme } from "../context/ThemeContext.jsx";
 import Alerta from "../components/Alerta.jsx";
 import Spinner from "../components/Spinner.jsx";
 
@@ -32,6 +33,7 @@ function fmtFecha(value) {
 }
 
 export default function MisPrestamos() {
+  const { theme } = useTheme();
   const [items, setItems] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
@@ -62,7 +64,7 @@ export default function MisPrestamos() {
         </h1>
 
         <div className="d-flex gap-2">
-          <button className="btn btn-sm btn-outline-light" onClick={cargar} disabled={cargando}>
+          <button className="btn btn-sm btn-outline-dark" onClick={cargar} disabled={cargando}>
             <i className="bi bi-arrow-clockwise me-1"></i>
             Recargar
           </button>
@@ -85,7 +87,7 @@ export default function MisPrestamos() {
         </div>
       ) : (
         <div className="table-responsive">
-          <table className="table table-dark table-hover align-middle">
+          <table className={`table ${theme === "dark" ? "table-dark" : "table-striped"} table-hover align-middle`}>
             <thead>
               <tr>
                 <th style={{ width: 80 }}>ID</th>

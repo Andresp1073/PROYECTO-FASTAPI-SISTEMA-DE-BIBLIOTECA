@@ -7,6 +7,7 @@ import {
   actualizarCategoria,
   eliminarCategoria,
 } from "../api/categorias.js";
+import { useTheme } from "../context/ThemeContext.jsx";
 import Alerta from "../components/Alerta.jsx";
 import Spinner from "../components/Spinner.jsx";
 
@@ -22,6 +23,7 @@ function parseFastApiError(err) {
 
 export default function AdminCategorias() {
   const navigate = useNavigate();
+  const { theme } = useTheme();
   const [items, setItems] = useState([]);
   const [cargando, setCargando] = useState(true);
 
@@ -109,9 +111,9 @@ export default function AdminCategorias() {
 
   return (
     <div className="container py-4">
-<div className="d-flex justify-content-between align-items-center mb-3">
+      <div className="d-flex justify-content-between align-items-center mb-3">
         <div className="d-flex align-items-center gap-2">
-          <button className="btn btn-outline-light btn-sm" onClick={() => navigate("/admin")}>
+          <button className={`btn ${theme === "dark" ? "btn-outline-light" : "btn-outline-dark"} btn-sm`} onClick={() => navigate("/admin")}>
             <i className="bi bi-arrow-left" />
           </button>
           <h3 className="m-0">
@@ -119,7 +121,7 @@ export default function AdminCategorias() {
             Admin Categorías
           </h3>
         </div>
-        <button className="btn btn-outline-light" onClick={cargar}>
+        <button className={`btn ${theme === "dark" ? "btn-outline-light" : "btn-outline-dark"}`} onClick={cargar}>
           <i className="bi bi-arrow-clockwise me-2" />
           Recargar
         </button>
@@ -127,7 +129,7 @@ export default function AdminCategorias() {
 
       <div className="row g-4">
         <div className="col-lg-4">
-          <div className="p-4 border rounded bg-body-tertiary">
+          <div className="p-4 border rounded bg-body">
             <h5 className="mb-3">{editando ? "Editar categoría" : "Nueva categoría"}</h5>
 
             <Alerta mensaje={error} />
@@ -148,12 +150,12 @@ export default function AdminCategorias() {
                 />
               </div>
 
-              <button className="btn btn-warning w-100">
+              <button className={`btn ${theme === "dark" ? "btn-warning" : "btn-primary"} w-100`}>
                 {editando ? "Actualizar" : "Crear"}
               </button>
 
               {editando && (
-                <button type="button" className="btn btn-outline-light w-100 mt-2" onClick={limpiar}>
+                <button type="button" className={`btn ${theme === "dark" ? "btn-outline-light" : "btn-outline-secondary"} w-100 mt-2`} onClick={limpiar}>
                   Cancelar
                 </button>
               )}
@@ -162,45 +164,47 @@ export default function AdminCategorias() {
         </div>
 
         <div className="col-lg-8">
-          <div className="p-4 border rounded bg-body-tertiary">
+          <div className="p-4 border rounded bg-body">
             {cargando ? (
               <Spinner texto="Cargando..." />
             ) : (
-              <table className="table table-dark table-hover align-middle">
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Nombre</th>
-                    <th>Descripción</th>
-                    <th width="140"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {items.map((cat) => (
-                    <tr key={cat.id}>
-                      <td>{cat.id}</td>
-                      <td className="fw-semibold">{cat.nombre}</td>
-                      <td>{cat.descripcion || "-"}</td>
-                      <td className="text-end">
-                        <button className="btn btn-sm btn-outline-light me-2" onClick={() => onEditar(cat)}>
-                          <i className="bi bi-pencil" />
-                        </button>
-                        <button className="btn btn-sm btn-outline-danger" onClick={() => onEliminar(cat.id)}>
-                          <i className="bi bi-trash" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-
-                  {items.length === 0 && (
+              <div className="table-responsive">
+                <table className={`table ${theme === "dark" ? "table-dark" : "table-striped"} table-hover align-middle`}>
+                  <thead>
                     <tr>
-                      <td colSpan="4" className="text-center text-secondary py-4">
-                        Sin categorías
-                      </td>
+                      <th>ID</th>
+                      <th>Nombre</th>
+                      <th>Descripción</th>
+                      <th width="140"></th>
                     </tr>
-                  )}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {items.map((cat) => (
+                      <tr key={cat.id}>
+                        <td>{cat.id}</td>
+                        <td className="fw-semibold">{cat.nombre}</td>
+                        <td>{cat.descripcion || "-"}</td>
+                        <td className="text-end">
+                          <button className={`btn btn-sm ${theme === "dark" ? "btn-outline-light" : "btn-outline-primary"} me-2`} onClick={() => onEditar(cat)}>
+                            <i className="bi bi-pencil" />
+                          </button>
+                          <button className="btn btn-sm btn-outline-danger" onClick={() => onEliminar(cat.id)}>
+                            <i className="bi bi-trash" />
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+
+                    {items.length === 0 && (
+                      <tr>
+                        <td colSpan="4" className="text-center text-secondary py-4">
+                          Sin categorías
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             )}
           </div>
         </div>

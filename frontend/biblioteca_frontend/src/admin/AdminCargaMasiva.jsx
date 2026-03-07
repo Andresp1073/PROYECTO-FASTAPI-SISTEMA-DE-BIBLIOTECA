@@ -2,6 +2,7 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { bulkLibrosCsv } from "../api/bulk.js";
+import { useTheme } from "../context/ThemeContext.jsx";
 import Alerta from "../components/Alerta.jsx";
 import Spinner from "../components/Spinner.jsx";
 
@@ -221,6 +222,7 @@ function extraerReporteBackend(res) {
 
 export default function AdminCargaMasiva() {
   const navigate = useNavigate();
+  const { theme } = useTheme();
   const [file, setFile] = useState(null);
   const [analisis, setAnalisis] = useState(null);
 
@@ -288,7 +290,7 @@ export default function AdminCargaMasiva() {
     <div className="container py-4">
 <div className="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
         <div className="d-flex align-items-center gap-2">
-          <button className="btn btn-outline-light btn-sm" onClick={() => navigate("/admin")}>
+          <button className="btn btn-outline-dark btn-sm" onClick={() => navigate("/admin")}>
             <i className="bi bi-arrow-left" />
           </button>
           <h3 className="m-0">

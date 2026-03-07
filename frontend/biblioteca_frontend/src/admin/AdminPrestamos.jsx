@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getPrestamos, devolverPrestamo, crearPrestamoAdmin, buscarUsuarios, getLibrosDisponibles } from "../api/prestamos.js";
+import { useTheme } from "../context/ThemeContext.jsx";
 import Alerta from "../components/Alerta.jsx";
 import Spinner from "../components/Spinner.jsx";
 
@@ -34,6 +35,7 @@ function fmt(value) {
 
 export default function AdminPrestamos() {
   const navigate = useNavigate();
+  const { theme } = useTheme();
   const [cargando, setCargando] = useState(true);
   const [items, setItems] = useState([]);
   const [error, setError] = useState("");
@@ -180,7 +182,7 @@ export default function AdminPrestamos() {
     <div className="container py-4">
       <div className="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
         <div className="d-flex align-items-center gap-2">
-          <button className="btn btn-outline-light btn-sm" onClick={() => navigate("/admin")}>
+          <button className="btn btn-outline-dark btn-sm" onClick={() => navigate("/admin")}>
             <i className="bi bi-arrow-left" />
           </button>
           <h3 className="m-0">
@@ -189,7 +191,7 @@ export default function AdminPrestamos() {
           </h3>
         </div>
 
-        <button className="btn btn-outline-light" onClick={cargar} disabled={cargando}>
+        <button className="btn btn-outline-dark" onClick={cargar} disabled={cargando}>
           <i className="bi bi-arrow-clockwise me-2" />
           Recargar
         </button>
@@ -205,7 +207,7 @@ export default function AdminPrestamos() {
 
       <div className="d-flex gap-2 mb-3 flex-wrap">
         <button
-          className={`btn btn-sm ${tab === "PRESTADO" ? "btn-light" : "btn-outline-light"}`}
+          className={`btn btn-sm ${tab === "PRESTADO" ? "btn-light" : "btn-outline-dark"}`}
           onClick={() => setTab("PRESTADO")}
         >
           <i className="bi bi-journal-arrow-up me-1" />
@@ -213,7 +215,7 @@ export default function AdminPrestamos() {
         </button>
 
         <button
-          className={`btn btn-sm ${tab === "DEVUELTO" ? "btn-light" : "btn-outline-light"}`}
+          className={`btn btn-sm ${tab === "DEVUELTO" ? "btn-light" : "btn-outline-dark"}`}
           onClick={() => setTab("DEVUELTO")}
         >
           <i className="bi bi-check2-circle me-1" />
@@ -221,7 +223,7 @@ export default function AdminPrestamos() {
         </button>
 
         <button
-          className={`btn btn-sm ${tab === "TODOS" ? "btn-light" : "btn-outline-light"}`}
+          className={`btn btn-sm ${tab === "TODOS" ? "btn-light" : "btn-outline-dark"}`}
           onClick={() => setTab("TODOS")}
         >
           <i className="bi bi-list-ul me-1" />
@@ -258,7 +260,7 @@ export default function AdminPrestamos() {
               <i className="bi bi-funnel me-2" />
               Aplicar
             </button>
-            <button className="btn btn-outline-light" type="button" onClick={limpiarFiltros} disabled={cargando}>
+            <button className="btn btn-outline-dark" type="button" onClick={limpiarFiltros} disabled={cargando}>
               <i className="bi bi-x-circle me-2" />
               Limpiar
             </button>
@@ -271,7 +273,7 @@ export default function AdminPrestamos() {
           <Spinner texto="Cargando prestamos..." />
         ) : (
           <div className="table-responsive">
-            <table className="table table-dark table-hover align-middle">
+            <table className={`table ${theme === "dark" ? "table-dark" : "table-striped"} table-hover align-middle`}>
               <thead>
                 <tr>
                   <th style={{ width: 90 }}>ID</th>
@@ -390,7 +392,7 @@ export default function AdminPrestamos() {
                           onChange={(e) => setBusquedaUsuario(e.target.value)}
                           onKeyDown={(e) => e.key === "Enter" && buscarUsuariosFn()}
                         />
-                        <button className="btn btn-outline-light" onClick={buscarUsuariosFn}>
+                        <button className="btn btn-outline-dark" onClick={buscarUsuariosFn}>
                           <i className="bi bi-search" />
                         </button>
                       </div>
@@ -424,7 +426,7 @@ export default function AdminPrestamos() {
                           {usuarioSeleccionado.documento && ` | Documento: ${usuarioSeleccionado.documento}`}
                         </div>
                       </div>
-                      <button className="btn btn-sm btn-outline-light" onClick={() => setUsuarioSeleccionado(null)}>
+                      <button className="btn btn-sm btn-outline-dark" onClick={() => setUsuarioSeleccionado(null)}>
                         <i className="bi bi-x-lg" />
                       </button>
                     </div>
@@ -446,7 +448,7 @@ export default function AdminPrestamos() {
                       onChange={(e) => setBusquedaLibro(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && buscarLibrosFn()}
                     />
-                    <button className="btn btn-outline-light" onClick={buscarLibrosFn}>
+                    <button className="btn btn-outline-dark" onClick={buscarLibrosFn}>
                       <i className="bi bi-search" />
                     </button>
                   </div>
@@ -475,7 +477,7 @@ export default function AdminPrestamos() {
                                 <td>{libro.categoria?.nombre || "—"}</td>
                                 <td>
                                   <button
-                                    className={`btn btn-sm ${libroSeleccionado?.id === libro.id ? "btn-success" : "btn-outline-light"}`}
+                                    className={`btn btn-sm ${libroSeleccionado?.id === libro.id ? "btn-success" : "btn-outline-dark"}`}
                                     onClick={() => setLibroSeleccionado(libro)}
                                   >
                                     {libroSeleccionado?.id === libro.id ? "Seleccionado" : "Seleccionar"}
@@ -492,7 +494,7 @@ export default function AdminPrestamos() {
               </div>
 
               <div className="modal-footer">
-                <button className="btn btn-outline-light" onClick={() => setShowNuevo(false)}>
+                <button className="btn btn-outline-dark" onClick={() => setShowNuevo(false)}>
                   Cancelar
                 </button>
                 <button

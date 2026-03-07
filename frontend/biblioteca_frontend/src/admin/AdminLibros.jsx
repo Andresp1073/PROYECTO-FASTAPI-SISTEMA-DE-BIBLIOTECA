@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { getLibros, crearLibro, actualizarLibro, eliminarLibro } from "../api/libros.js";
 import { getCategorias } from "../api/categorias.js";
 import { uploadCover } from "../api/uploads.js";
+import { useTheme } from "../context/ThemeContext.jsx";
 import Alerta from "../components/Alerta.jsx";
 import Spinner from "../components/Spinner.jsx";
 
@@ -36,6 +37,7 @@ function resolveCoverUrl(coverUrl) {
 
 export default function AdminLibros() {
   const navigate = useNavigate();
+  const { theme } = useTheme();
   const [cargando, setCargando] = useState(true);
   const [items, setItems] = useState([]);
   const [cats, setCats] = useState([]);
@@ -262,7 +264,7 @@ export default function AdminLibros() {
     <div className="container py-4">
 <div className="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
         <div className="d-flex align-items-center gap-2">
-          <button className="btn btn-outline-light btn-sm" onClick={() => navigate("/admin")}>
+          <button className={`btn ${theme === "dark" ? "btn-outline-light" : "btn-outline-dark"} btn-sm`} onClick={() => navigate("/admin")}>
             <i className="bi bi-arrow-left" />
           </button>
           <h3 className="m-0">
@@ -279,7 +281,7 @@ export default function AdminLibros() {
             value={q}
             onChange={(e) => setQ(e.target.value)}
           />
-          <button className="btn btn-outline-light" onClick={cargar} disabled={cargando}>
+          <button className={`btn ${theme === "dark" ? "btn-outline-light" : "btn-outline-dark"}`} onClick={cargar} disabled={cargando}>
             <i className="bi bi-arrow-clockwise me-2" />
             Recargar
           </button>
@@ -371,7 +373,7 @@ export default function AdminLibros() {
               <Spinner texto="Cargando..." />
             ) : (
               <div className="table-responsive">
-                <table className="table table-dark table-hover align-middle">
+                <table className={`table ${theme === "dark" ? "table-dark" : "table-striped"} table-hover align-middle`}>
                   <thead>
                     <tr>
                       <th style={{ width: 70 }}>ID</th>
@@ -562,7 +564,7 @@ export default function AdminLibros() {
                 </div>
 
                 <div className="modal-footer">
-                  <button className="btn btn-outline-light" onClick={cerrarEditar} disabled={savingEdit || uploadingEditCover}>
+                  <button className={`btn ${theme === "dark" ? "btn-outline-light" : "btn-outline-secondary"}`} onClick={cerrarEditar} disabled={savingEdit || uploadingEditCover}>
                     Cancelar
                   </button>
                   <button className="btn btn-light" onClick={guardarEdicion} disabled={savingEdit || uploadingEditCover}>

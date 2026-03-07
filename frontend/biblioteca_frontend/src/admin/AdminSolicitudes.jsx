@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getSolicitudesPendientes, aprobarSolicitud, rechazarSolicitud } from "../api/solicitudes.js";
+import { useTheme } from "../context/ThemeContext.jsx";
 import Alerta from "../components/Alerta.jsx";
 import Spinner from "../components/Spinner.jsx";
 
@@ -24,6 +25,7 @@ function fmtFecha(value) {
 
 export default function AdminSolicitudes() {
   const navigate = useNavigate();
+  const { theme } = useTheme();
   const [items, setItems] = useState([]);
   const [cargando, setCargando] = useState(true);
   const [error, setError] = useState("");
@@ -87,7 +89,7 @@ export default function AdminSolicitudes() {
     <div className="container py-4">
       <div className="d-flex align-items-center justify-content-between mb-3 flex-wrap gap-2">
         <div className="d-flex align-items-center gap-2">
-          <button className="btn btn-outline-light btn-sm" onClick={() => navigate("/admin")}>
+          <button className="btn btn-outline-dark btn-sm" onClick={() => navigate("/admin")}>
             <i className="bi bi-arrow-left" />
           </button>
           <h3 className="m-0">
@@ -96,7 +98,7 @@ export default function AdminSolicitudes() {
           </h3>
         </div>
 
-        <button className="btn btn-outline-light" onClick={cargar} disabled={cargando}>
+        <button className="btn btn-outline-dark" onClick={cargar} disabled={cargando}>
           <i className="bi bi-arrow-clockwise me-2" />
           Recargar
         </button>
@@ -115,7 +117,7 @@ export default function AdminSolicitudes() {
           </div>
         ) : (
           <div className="table-responsive">
-            <table className="table table-dark table-hover align-middle">
+            <table className={`table ${theme === "dark" ? "table-dark" : "table-striped"} table-hover align-middle`}>
               <thead>
                 <tr>
                   <th>Usuario</th>
@@ -187,7 +189,7 @@ export default function AdminSolicitudes() {
                 />
               </div>
               <div className="modal-footer">
-                <button className="btn btn-outline-light" onClick={() => setRechazoModal(null)}>
+                <button className="btn btn-outline-dark" onClick={() => setRechazoModal(null)}>
                   Cancelar
                 </button>
                 <button className="btn btn-danger" onClick={handleRechazar}>

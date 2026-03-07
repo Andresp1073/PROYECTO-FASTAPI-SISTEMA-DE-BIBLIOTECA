@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from "react-router-dom";
 
 import Navegacion from "./layout/Navegacion.jsx";
 import RutaProtegida from "./layout/RutaProtegida.jsx";
+import { ThemeProvider } from "./context/ThemeContext.jsx";
 
 // Auth
 import Login from "./auth/Login.jsx";
@@ -30,7 +31,7 @@ import AdminSolicitudes from "./admin/AdminSolicitudes.jsx";
 
 export default function App() {
   return (
-    <>
+    <ThemeProvider>
       <Navegacion />
 
       <Routes>
@@ -152,6 +153,6 @@ export default function App() {
         {/* ===== FALLBACK ===== */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </>
+    </ThemeProvider>
   );
 }

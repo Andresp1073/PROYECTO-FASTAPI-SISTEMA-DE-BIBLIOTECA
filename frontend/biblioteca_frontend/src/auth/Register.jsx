@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { register as apiRegister } from "../api/auth.js";
+import { useTheme } from "../context/ThemeContext.jsx";
 import Alerta from "../components/Alerta.jsx";
 
 function parseFastApiError(err) {
@@ -25,6 +26,7 @@ function parseFastApiError(err) {
 }
 
 export default function Register() {
+  const { theme, toggleTheme } = useTheme();
   const [nombre, setNombre] = useState("");
   const [documento, setDocumento] = useState("");
   const [email, setEmail] = useState("");
@@ -65,11 +67,22 @@ export default function Register() {
   return (
     <div className="row justify-content-center">
       <div className="col-12 col-md-8 col-lg-5">
-        <div className="p-4 border rounded-3 bg-body-tertiary">
-          <h1 className="h4 mb-3">
-            <i className="bi bi-person-plus me-2"></i>
-            Register
-          </h1>
+        <div className="p-4 border rounded-3 bg-body">
+          <div className="d-flex justify-content-between align-items-center mb-3">
+            <h1 className="h4 mb-0">
+              <i className="bi bi-person-plus me-2"></i>
+              Biblioteca Académica
+            </h1>
+            <button
+              className="btn btn-outline-primary btn-sm"
+              onClick={toggleTheme}
+              title={theme === "light" ? "Modo oscuro" : "Modo claro"}
+            >
+              <i className={`bi ${theme === "light" ? "bi-moon-fill" : "bi-sun-fill"}`} />
+            </button>
+          </div>
+
+          <h5 className="text-center mb-4">Crear Cuenta</h5>
 
           <Alerta mensaje={error} />
           <Alerta type="success" mensaje={ok} />
@@ -128,7 +141,7 @@ export default function Register() {
 
             <button
               type="submit"
-              className="btn btn-light w-100"
+              className="btn btn-primary w-100"
               disabled={cargando}
             >
               {cargando ? (
