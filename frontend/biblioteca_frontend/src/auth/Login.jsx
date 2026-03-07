@@ -26,16 +26,10 @@ export default function Login() {
       // ✅ login devuelve el user ya cargado
       const { me } = await login({ email, password });
 
-      // si venías de una ruta protegida, vuelve ahí
-      const from = location.state?.from;
-
-      if (from) {
-        navigate(from, { replace: true });
-      } else {
-        // redirección por rol
-        if (me?.rol === "ADMIN") navigate("/admin", { replace: true });
-        else navigate("/libros", { replace: true });
-      }
+      // Siempre redirigir al “home” luego de iniciar sesión
+      // (evita volver a la ruta donde se cerró sesión).
+      if (me?.rol === "ADMIN") navigate("/admin", { replace: true });
+      else navigate("/", { replace: true });
     } catch (err) {
       const msg =
         typeof err?.message === "string" && err.message && err.message !== "Error"

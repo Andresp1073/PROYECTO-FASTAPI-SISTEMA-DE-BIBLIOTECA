@@ -42,7 +42,9 @@ export default function Navegacion() {
 
   const salir = async () => {
     await logout();
-    navigate("/login", { replace: true });
+    // Al cerrar sesión, forzamos que el siguiente login vaya a la página de inicio
+    // (evita volver a la última ruta protegida en la que estaba el usuario).
+    navigate("/login", { replace: true, state: { from: "/" } });
   };
 
   return (
