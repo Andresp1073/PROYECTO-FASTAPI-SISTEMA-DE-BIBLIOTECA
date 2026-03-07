@@ -2,7 +2,7 @@
 
 Una aplicación web completa para gestión de bibliotecas con frontend en React y backend en FastAPI.
 
-## 🛠 Tecnologías Utilizadas
+##  Tecnologías Utilizadas
 
 ### Backend
 - **FastAPI** 0.135.1 - Framework web asíncrono
@@ -25,7 +25,7 @@ Una aplicación web completa para gestión de bibliotecas con frontend en React 
 ### Base de Datos
 - **MySQL** - Sistema de base de datos relacional
 
-## 📁 Estructura del Proyecto
+## Estructura del Proyecto
 
 ```
 PROYECTO-FASTAPI-SISTEMA-DE-BIBLIOTECA/
@@ -84,9 +84,9 @@ PROYECTO-FASTAPI-SISTEMA-DE-BIBLIOTECA/
     ├── main.py                    # Aplicación FastAPI
     ├── requirements.txt           # Dependencias Python
     └── .env                       # Variables de entorno
-``` [1](#1-0) [2](#1-1) 
+``` 
 
-## 🚀 Configuración Local
+## Configuración Local
 
 ### Prerrequisitos
 - Python 3.8+
@@ -173,7 +173,7 @@ PROYECTO-FASTAPI-SISTEMA-DE-BIBLIOTECA/
 
    El frontend estará disponible en `http://localhost:5173`
 
-## 📋 Características Principales
+## Características Principales
 
 ### Autenticación
 - Registro de usuarios con verificación por email
@@ -198,7 +198,7 @@ PROYECTO-FASTAPI-SISTEMA-DE-BIBLIOTECA/
 - Reportes y estadísticas
 - Carga masiva de datos
 
-## 🔐 Modelo de Autenticación
+## Modelo de Autenticación
 
 El sistema utiliza un esquema de doble token:
 
@@ -207,7 +207,7 @@ El sistema utiliza un esquema de doble token:
 
 El frontend incluye interceptores automáticos para refrescar el token cuando expira [3](#1-2) .
 
-## 📡 API Endpoints
+## API Endpoints
 
 La API expone los siguientes grupos de endpoints:
 
@@ -219,7 +219,7 @@ La API expone los siguientes grupos de endpoints:
 - `/uploads/covers` - Upload de imágenes
 - `/bulk/libros` - Importación masiva
 
-## 🎨 UI/UX
+## UI/UX
 
 - Interfaz responsive con Bootstrap 5
 - Modo oscuro por defecto
@@ -227,7 +227,7 @@ La API expone los siguientes grupos de endpoints:
 - Componentes reutilizables (Alerta, Spinner)
 - Protección de rutas por rol [4](#1-3) 
 
-## 🤝 Contribución
+## Contribución
 
 1. Fork del proyecto
 2. Crear rama de feature (`git checkout -b feature/NuevaCaracteristica`)
@@ -235,11 +235,11 @@ La API expone los siguientes grupos de endpoints:
 4. Push a la rama (`git push origin feature/NuevaCaracteristica`)
 5. Pull Request
 
-## 📄 Licencia
+## Licencia
 
 Este proyecto está bajo la Licencia MIT - ver el archivo [LICENSE](LICENSE) para detalles.
 
-## 📞 Contacto
+## Contacto
 
 - Autor: Andrés Mauricio Peña
 - Email: andresmauriciope1073@gmail.com
@@ -293,7 +293,7 @@ class Settings(BaseSettings):
     ADMIN_EMAIL: str = "andresmauriciope1073@gmail.com"
     ADMIN_PASSWORD: str = "Admin123*"
 
-    # 🔴 AGREGA ESTA VARIABLE
+    # AGREGA ESTA VARIABLE
     ENV: str = "DEV"
 
     # CORS
@@ -325,17 +325,17 @@ http.interceptors.request.use((config) => {
 export default function RutaProtegida({ children, adminOnly = false }) {
   const { authReady, isAuthenticated, isAdmin } = useAuth();
 
-  // ✅ Esperar a que el auth termine de inicializar (refresh)
+  // Esperar a que el auth termine de inicializar (refresh)
   if (!authReady) {
     return <Spinner texto="Verificando sesión..." />;
   }
 
-  // ✅ Si no hay sesión -> login
+  // Si no hay sesión -> login
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
-  // ✅ Si es ruta admin y no es admin -> home
+  // Si es ruta admin y no es admin -> home
   if (adminOnly && !isAdmin) {
     return <Navigate to="/" replace />;
   }
