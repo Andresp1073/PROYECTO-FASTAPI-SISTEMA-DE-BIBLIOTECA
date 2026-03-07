@@ -7,6 +7,8 @@ from models.libro import Libro, LibroEstado
 from models.prestamo import Prestamo, PrestamoEstado
 from models.user import User
 from models.notificacion import Notificacion, NotificacionTipo
+from core.email import send_email
+from core.email_templates import email_solicitud_aprobada, email_prestamo_devuelto
 
 
 def prestar_libro(db: Session, user_id: int, libro_id: int) -> Prestamo:
@@ -76,6 +78,20 @@ def prestar_libro_admin(db: Session, user_id: int, libro_id: int) -> Prestamo:
     db.flush()
     db.refresh(prestamo, ["libro"])
     db.commit()
+    
+    # Enviar email al usuario
+    if user.email:
+        try:
+            fecha_prestamo = datetime.now().strftime("%d/%m/%Y %H:%M")
+            subject, html = email_solicitud_aprobada(
+                libro_titulo=libro.titulo,
+                fecha_solicitud=fecha_prestamo,
+                solicitud_id=prestamo.id
+            )
+            send_email(user.email, subject, html)
+        except Exception:
+            pass
+    
     return prestamo
 
 
@@ -114,6 +130,19 @@ def devolver_prestamo(db: Session, user_id: int, prestamo_id: int, is_admin: boo
             referencia_tipo="prestamo"
         )
         db.add(notificacion)
+        
+        # Enviar email al usuario
+        usuario = db.query(User).filter(User.id == prestamo.user_id).first()
+        if usuario and usuario.email:
+            try:
+                fecha_devolucion = datetime.now().strftime("%d/%m/%Y %H:%M")
+                subject, html = email_prestamo_devuelto(
+                    libro_titulo=libro.titulo,
+                    fecha_devolucion=fecha_devolucion
+                )
+                send_email(usuario.email, subject, html)
+            except Exception:
+                pass
 
     db.commit()
     db.refresh(prestamo)

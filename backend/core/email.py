@@ -1,4 +1,5 @@
 import logging
+import asyncio
 from fastapi_mail import FastMail, MessageSchema, ConnectionConfig
 from pydantic import EmailStr
 
@@ -22,11 +23,7 @@ def _build_mail_conf() -> ConnectionConfig:
     )
 
 
-async def send_email(to_email: EmailStr, subject: str, html_body: str) -> None:
-    """
-    Enviar email HTML usando fastapi-mail.
-    Requiere SMTP_* y EMAIL_FROM configurados en .env
-    """
+async def _send_email_async(to_email: EmailStr, subject: str, html_body: str) -> None:
     if not settings.SMTP_HOST or not settings.SMTP_PORT or not settings.EMAIL_FROM:
         logger.warning("SMTP/EMAIL_FROM no configurado. Email NO enviado (modo dev).")
         return
@@ -43,3 +40,14 @@ async def send_email(to_email: EmailStr, subject: str, html_body: str) -> None:
 
     await fm.send_message(message)
     logger.info("Email enviado a %s (subject=%s)", to_email, subject)
+
+
+def send_email(to_email: EmailStr, subject: str, html_body: str) -> None:
+    """
+    Enviar email HTML - versión síncrona que ejecuta el async.
+    Requiere SMTP_* y EMAIL_FROM configurados en .env
+    """
+    try:
+        asyncio.run(_send_email_async(to_email, subject, html_body))
+    except Exception as e:
+        logger.error("Error enviando email a %s: %s", to_email, e)

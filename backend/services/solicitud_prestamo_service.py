@@ -7,6 +7,12 @@ from models.notificacion import Notificacion, NotificacionTipo
 from models.prestamo import Prestamo, PrestamoEstado
 from models.libro import Libro, LibroEstado
 from models.user import User
+from core.email import send_email
+from core.email_templates import (
+    email_nueva_solicitud_admin,
+    email_solicitud_aprobada,
+    email_solicitud_rechazada,
+)
 
 
 def crear_solicitud(db: Session, usuario_id: int, libro_id: int) -> SolicitudPrestamo:
@@ -40,6 +46,8 @@ def crear_solicitud(db: Session, usuario_id: int, libro_id: int) -> SolicitudPre
     
     # Notificar al admin (todos los admins)
     admins = db.query(User).filter(User.rol == "ADMIN").all()
+    usuario = db.query(User).filter(User.id == usuario_id).first()
+    
     for admin in admins:
         notificacion = Notificacion(
             usuario_id=admin.id,
@@ -50,6 +58,19 @@ def crear_solicitud(db: Session, usuario_id: int, libro_id: int) -> SolicitudPre
             referencia_tipo="solicitud"
         )
         db.add(notificacion)
+        
+        # Enviar email al admin
+        if admin.email:
+            try:
+                subject, html = email_nueva_solicitud_admin(
+                    libro_titulo=libro.titulo,
+                    usuario_nombre=usuario.nombre if usuario else "Usuario",
+                    usuario_email=usuario.email if usuario else "",
+                    solicitud_id=solicitud.id
+                )
+                send_email(admin.email, subject, html)
+            except Exception:
+                pass
     
     db.commit()
     
@@ -102,6 +123,20 @@ def aprobar_solicitud(db: Session, solicitud_id: int, admin_id: int) -> Solicitu
     )
     db.add(notificacion)
     
+    # Enviar email al usuario
+    usuario = db.query(User).filter(User.id == solicitud.usuario_id).first()
+    if usuario and usuario.email:
+        try:
+            fecha_aprobacion = datetime.now().strftime("%d/%m/%Y %H:%M")
+            subject, html = email_solicitud_aprobada(
+                libro_titulo=libro.titulo,
+                fecha_solicitud=fecha_aprobacion,
+                solicitud_id=solicitud.id
+            )
+            send_email(usuario.email, subject, html)
+        except Exception:
+            pass
+    
     db.commit()
     db.refresh(solicitud)
     
@@ -139,6 +174,21 @@ def rechazar_solicitud(db: Session, solicitud_id: int, admin_id: int, nota_recha
         referencia_tipo="solicitud"
     )
     db.add(notificacion)
+    
+    # Enviar email al usuario
+    usuario = db.query(User).filter(User.id == solicitud.usuario_id).first()
+    if usuario and usuario.email:
+        try:
+            fecha_rechazo = datetime.now().strftime("%d/%m/%Y %H:%M")
+            subject, html = email_solicitud_rechazada(
+                libro_titulo=libro.titulo,
+                nota_rechazo=nota_rechazo,
+                fecha_solicitud=fecha_rechazo,
+                solicitud_id=solicitud.id
+            )
+            send_email(usuario.email, subject, html)
+        except Exception:
+            pass
     
     db.commit()
     db.refresh(solicitud)
